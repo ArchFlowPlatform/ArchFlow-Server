@@ -64,7 +64,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine("⚠️ Nenhuma connection string encontrada. Usando PostgreSQL local padrão.");
-    connectionString = "Host=localhost;Port=5432;Database=agiletracker_dev;Username=postgres;Password=123456";
+    connectionString = "Host=localhost;Port=5432;Database=agiletracker_dev;Username=postgres;Password=root";
 }
 
 
