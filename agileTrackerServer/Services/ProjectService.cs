@@ -1,35 +1,64 @@
 using agileTrackerServer.Models.Entities;
 using agileTrackerServer.Repositories.Interfaces;
+using agileTrackerServer.Models.Dtos.Project;
+
 
 namespace agileTrackerServer.Services
 {
     public class ProjectService
     {
-        private readonly IProjectRepository _repo;
+        private readonly IProjectRepository _repository;
 
-        public ProjectService(IProjectRepository repo)
+        public ProjectService(IProjectRepository repository)
         {
-            _repo = repo;
+            _repository = repository;
         }
 
-        public async Task<IEnumerable<Project>> GetAllAsync() =>
-            await _repo.GetAllAsync();
+        public async Task<IEnumerable<ProjectResponseDto>> GetAllAsync()
+        {
+            var projects = await _repository.GetAllAsync();
+            return projects.Select(MapToDto);
+        }
 
-        public async Task<Project?> GetByIdAsync(Guid id) =>
-            await _repo.GetByIdAsync(id);
+        public async Task<ProjectResponseDto?> GetByIdAsync(Guid id)
+        {
+            var project = await _repository.GetByIdAsync(id);
+            return project is null ? null : MapToDto(project);
+        }
 
-        public async Task<Project> CreateAsync(string name, string description, Guid ownerId)
+        public async Task<ProjectResponseDto> CreateAsync(CreateProjectDto dto)
         {
             var project = new Project
             {
-                Name = name,
-                Description = description,
-                OwnerId = ownerId
+                Id = Guid.NewGuid(),
+                Name = dto.Name,
+                Description = dto.Description,
+                OwnerId = dto.OwnerId,
+                Status = "Active",          
+                CreatedAt = DateTime.UtcNow,
             };
 
-            await _repo.AddAsync(project);
-            await _repo.SaveChangesAsync();
-            return project;
+            await _repository.AddAsync(project);
+            await _repository.SaveChangesAsync();
+
+            // recarrega com Owner incluído se precisar do OwnerName
+            var created = await _repository.GetByIdAsync(project.Id) ?? project;
+
+            return MapToDto(created);
+        }
+
+        private static ProjectResponseDto MapToDto(Project p)
+        {
+            return new ProjectResponseDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                OwnerId = p.OwnerId,
+                OwnerName = p.Owner?.Name ?? string.Empty,
+                Status = p.Status,
+                CreatedAt = p.CreatedAt,
+            };
         }
     }
 }

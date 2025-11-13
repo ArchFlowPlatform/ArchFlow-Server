@@ -1,6 +1,7 @@
-using agileTrackerServer.Models.Entities;
+using agileTrackerServer.Models.Dtos.Project;
 using agileTrackerServer.Services;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace agileTrackerServer.Controllers
 {
@@ -15,26 +16,41 @@ namespace agileTrackerServer.Controllers
             _service = service;
         }
 
+        // GET api/projects
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Project>>> GetAll()
+        [SwaggerOperation(Summary = "Lista todos os projetos.")]
+        [ProducesResponseType(typeof(IEnumerable<ProjectResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<ProjectResponseDto>>> GetAll()
         {
             var projects = await _service.GetAllAsync();
             return Ok(projects);
         }
 
+        // GET api/projects/{id}
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<Project>> GetById(Guid id)
+        [SwaggerOperation(Summary = "Busca um projeto pelo ID.")]
+        [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ProjectResponseDto>> GetById(Guid id)
         {
             var project = await _service.GetByIdAsync(id);
             if (project == null) return NotFound();
             return Ok(project);
         }
 
+        // POST api/projects
         [HttpPost]
-        public async Task<ActionResult<Project>> Create(Project request)
+        [SwaggerOperation(Summary = "Cria um novo projeto.")]
+        [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status201Created)]
+        public async Task<ActionResult<ProjectResponseDto>> Create([FromBody] CreateProjectDto request)
         {
-            var project = await _service.CreateAsync(request.Name, request.Description, request.OwnerId);
-            return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
+            var project = await _service.CreateAsync(request);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = project.Id },
+                project
+            );
         }
     }
 }
