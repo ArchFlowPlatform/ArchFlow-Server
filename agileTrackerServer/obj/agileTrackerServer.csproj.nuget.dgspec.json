@@ -1,23 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj": {}
+    "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj": {}
   },
   "projects": {
-    "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj": {
+    "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
+        "projectUniqueName": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
         "projectName": "agileTrackerServer",
-        "projectPath": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
-        "packagesPath": "C:\\Users\\Leona\\.nuget\\packages\\",
-        "outputPath": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\obj\\",
+        "projectPath": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
+        "packagesPath": "C:\\Users\\leonardo.silva\\.nuget\\packages\\",
+        "outputPath": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\Leona\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\leonardo.silva\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -50,6 +51,14 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "Isopoh.Cryptography.Argon2": {
+              "target": "Package",
+              "version": "[2.0.0, )"
+            },
+            "Konscious.Security.Cryptography.Argon2": {
+              "target": "Package",
+              "version": "[1.3.1, )"
+            },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.0-preview.5.24306.7, )"
@@ -110,7 +119,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

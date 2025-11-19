@@ -26,5 +26,11 @@ namespace agileTrackerServer.Repositories.Implementations
         
         public async Task SaveChangesAsync() =>
             await _context.SaveChangesAsync();
+        
+        public async Task<bool> EmailExistsAsync(string email)
+        {
+            return await _context.Users.AnyAsync(u => u.Email == email);
+        }
+        
     }
 }

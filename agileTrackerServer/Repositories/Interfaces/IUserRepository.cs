@@ -8,5 +8,6 @@ namespace agileTrackerServer.Repositories.Interfaces
         Task<User?> GetByIdAsync(Guid id);
         Task AddAsync(User user);
         Task SaveChangesAsync();
+        Task<bool> EmailExistsAsync(string email);
     }
 }

@@ -1,9 +1,10 @@
+using agileTrackerServer.Models.Enums;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace agileTrackerServer.Models.Dtos.User;
 
 [SwaggerSchema(Description = "Dados de retorno de um usuário.")]
-public class UserResponseDto
+public class ResponseUserDto
 {
     [SwaggerSchema("Identificador único do usuário.")]
     public Guid Id { get; set; }
@@ -15,7 +16,7 @@ public class UserResponseDto
     public string Email { get; set; } = string.Empty;
 
     [SwaggerSchema("Tipo do usuário, representando sua assinatura.")]
-    public string Type { get; set; } = string.Empty;
+    public UserType Type { get; set; } = UserType.Free;
 
     [SwaggerSchema("URL do avatar do usuário.")]
     public string? AvatarUrl { get; set; }

@@ -6,9 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using agileTrackerServer.Utils;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+string pepper = builder.Configuration["Security:Pepper"];
 
 // ============================================================================
 // ⚙️ CONFIGURAÇÃO BÁSICA DO ASP.NET CORE
@@ -20,6 +23,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+        );
     });
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -27,6 +33,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     // Evita resposta 400 automática em ModelState inválido (tratado manualmente)
     options.SuppressModelStateInvalidFilter = true;
 });
+
+builder.Services.Configure<SecuritySettings>(
+    builder.Configuration.GetSection("Security"));
 
 // ============================================================================
 // 🧩 SWAGGER / OPENAPI
@@ -74,7 +83,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 
 // ============================================================================
-// ⚙️ INJEÇÃO DE DEPENDÊNCIAS (SERVIÇOS E REPOSITÓRIOS)
+// ⚙️ INJEÇÃO DE DEPENDÊNCIAS (SERVIÇOS, REPOSITÓRIOS E UTILS)
 // ============================================================================
 
 // Repositories
@@ -86,6 +95,9 @@ builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SprintService>();
+
+// Utils
+builder.Services.AddScoped<PasswordHasher>();
 
 // ============================================================================
 // 🌐 CORS (Substituindo Angular → Next.js)
