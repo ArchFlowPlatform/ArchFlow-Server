@@ -20,15 +20,31 @@ public class UsersController : ControllerBase
     
     // GET api/users/{id}
     [HttpGet("{id:guid}")]
-    [SwaggerOperation(Summary = "Busca um usuário pelo ID.")]
-    [ProducesResponseType(typeof(ResponseUserDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ResponseUserDto>> GetById(Guid id)
+    [SwaggerOperation(Summary = "Obtém um usuário pelo ID.")]
+    [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id)
     {
-        var project = await _service.GetByIdAsync(id);
-        if (project == null) return NotFound();
-        return Ok(project);
+        var user = await _service.GetByIdAsync(id);
+
+        if (user == null)
+        {
+            return Ok(
+                ResultViewModel<ResponseUserDto>.Fail(
+                    "Usuário não encontrado!",
+                    new List<string> { "Nenhum usuário com esse ID foi localizado." }
+                )
+            );
+        }
+
+        return Ok(
+            ResultViewModel<ResponseUserDto>.Ok(
+                "Usuário encontrado com sucesso!",
+                user
+            )
+        );
     }
+
     
     // POST api/users
     [HttpPost]
