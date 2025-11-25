@@ -33,6 +33,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     // Evita resposta 400 automática em ModelState inválido (tratado manualmente)
     options.SuppressModelStateInvalidFilter = true;
+    options.SuppressMapClientErrors = true;
 });
 
 builder.Services.Configure<SecuritySettings>(
@@ -139,7 +140,10 @@ builder.Logging.SetMinimumLevel(
 // 🚀 PIPELINE DE EXECUÇÃO
 // ============================================================================
 
+
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Desenvolvimento
 if (app.Environment.IsDevelopment())
@@ -152,12 +156,10 @@ if (app.Environment.IsDevelopment())
         c.DisplayRequestDuration();
     });
 
-    app.UseDeveloperExceptionPage();
     app.UseCors("DevelopmentCors");
 }
 else
 {
-    app.UseExceptionHandler("/error");
     app.UseHsts();
     app.UseCors("ProductionCors");
 }
@@ -165,9 +167,7 @@ else
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
-
 app.MapControllers();
-app.UseMiddleware<GlobalExceptionMiddleware>();
 
 
 // ============================================================================

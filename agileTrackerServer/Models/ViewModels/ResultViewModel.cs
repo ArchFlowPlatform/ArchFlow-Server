@@ -4,7 +4,10 @@ public class ResultViewModel
 {
     public string Message { get; set; } = string.Empty;
     public bool Success { get; set; }
-    public object? Data { get; set; }
+
+    // nunca será null
+    public object Data { get; set; } = new { };
+
     public List<string> Errors { get; set; } = new();
 
     public ResultViewModel() { }
@@ -17,13 +20,16 @@ public class ResultViewModel
     {
         Message = message;
         Success = success;
-        Data = data;
+
+        // força data a nunca ser null
+        Data = data ?? new { };
+
         Errors = errors ?? new();
     }
 
     public static ResultViewModel Ok(string message, object? data = null)
-        => new(message, true, data);
+        => new(message, true, data ?? new { });
 
     public static ResultViewModel Fail(string message, List<string>? errors = null)
-        => new(message, false, null, errors ?? new());
+        => new(message, false, new { }, errors ?? new());
 }

@@ -1,4 +1,5 @@
 using agileTrackerServer.Models.Dtos.Project;
+using agileTrackerServer.Models.ViewModels;
 using agileTrackerServer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -19,37 +20,74 @@ namespace agileTrackerServer.Controllers
         // GET api/projects
         [HttpGet]
         [SwaggerOperation(Summary = "Lista todos os projetos.")]
-        [ProducesResponseType(typeof(IEnumerable<ProjectResponseDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<ProjectResponseDto>>> GetAll()
+        [ProducesResponseType(typeof(ResultViewModel<IEnumerable<ProjectResponseDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll()
         {
             var projects = await _service.GetAllAsync();
-            return Ok(projects);
+
+            return Ok(
+                ResultViewModel<IEnumerable<ProjectResponseDto>>.Ok(
+                    "Lista de projetos obtida com sucesso!",
+                    projects
+                )
+            );
         }
 
         // GET api/projects/{id}
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Busca um projeto pelo ID.")]
-        [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ProjectResponseDto>> GetById(Guid id)
+        [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetById(string id)
         {
-            var project = await _service.GetByIdAsync(id);
-            if (project == null) return NotFound();
-            return Ok(project);
+            // 1. Validar GUID manualmente
+            if (!Guid.TryParse(id, out var guid))
+            {
+                return BadRequest(
+                    ResultViewModel.Fail(
+                        "O ID informado é inválido.",
+                        new List<string> { "O parâmetro não é um GUID válido." }
+                    )
+                );
+            }
+
+            // 2. Buscar o projeto
+            var project = await _service.GetByIdAsync(guid);
+
+            if (project == null)
+            {
+                return NotFound(
+                    ResultViewModel.Fail(
+                        "Projeto não encontrado!",
+                        new List<string> { "Nenhum projeto com esse ID foi localizado." }
+                    )
+                );
+            }
+
+            // 3. Retorno padrão
+            return Ok(
+                ResultViewModel<ProjectResponseDto>.Ok(
+                    "Projeto encontrado com sucesso!",
+                    project
+                )
+            );
         }
 
         // POST api/projects
         [HttpPost]
         [SwaggerOperation(Summary = "Cria um novo projeto.")]
-        [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status201Created)]
-        public async Task<ActionResult<ProjectResponseDto>> Create([FromBody] CreateProjectDto request)
+        [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status201Created)]
+        public async Task<IActionResult> Create([FromBody] CreateProjectDto request)
         {
             var project = await _service.CreateAsync(request);
 
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = project.Id },
-                project
+                ResultViewModel<ProjectResponseDto>.Ok(
+                    "Projeto criado com sucesso!",
+                    project
+                )
             );
         }
     }

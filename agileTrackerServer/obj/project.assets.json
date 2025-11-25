@@ -3974,25 +3974,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\leonardo.silva\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
-    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
+    "C:\\Users\\Leona\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
+      "projectUniqueName": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
       "projectName": "agileTrackerServer",
-      "projectPath": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
-      "packagesPath": "C:\\Users\\leonardo.silva\\.nuget\\packages\\",
-      "outputPath": "C:\\Leo\\AgileTracker-Server\\agileTrackerServer\\obj\\",
+      "projectPath": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\agileTrackerServer.csproj",
+      "packagesPath": "C:\\Users\\Leona\\.nuget\\packages\\",
+      "outputPath": "C:\\AgileTracker\\AgileTracker-Server\\agileTrackerServer\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\leonardo.silva\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Leona\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -4093,7 +4091,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   },

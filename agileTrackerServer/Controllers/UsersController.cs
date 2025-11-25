@@ -1,4 +1,3 @@
-using agileTrackerServer.Models.Dtos.Project;
 using agileTrackerServer.Models.Dtos.User;
 using agileTrackerServer.Models.ViewModels;
 using agileTrackerServer.Services;
@@ -19,24 +18,37 @@ public class UsersController : ControllerBase
     }
     
     // GET api/users/{id}
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     [SwaggerOperation(Summary = "Obtém um usuário pelo ID.")]
     [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(Guid id)
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id)
     {
-        var user = await _service.GetByIdAsync(id);
+        // 1. Validar GUID manualmente (evita 404 automático sem body)
+        if (!Guid.TryParse(id, out var guid))
+        {
+            return BadRequest(
+                ResultViewModel.Fail(
+                    "O ID informado é inválido.",
+                    new List<string> { "O parâmetro não é um GUID válido." }
+                )
+            );
+        }
+
+        // 2. Buscar usuário
+        var user = await _service.GetByIdAsync(guid);
 
         if (user == null)
         {
-            return Ok(
-                ResultViewModel<ResponseUserDto>.Fail(
+            return NotFound(
+                ResultViewModel.Fail(
                     "Usuário não encontrado!",
                     new List<string> { "Nenhum usuário com esse ID foi localizado." }
                 )
             );
         }
 
+        // 3. Retorno normal
         return Ok(
             ResultViewModel<ResponseUserDto>.Ok(
                 "Usuário encontrado com sucesso!",
@@ -49,8 +61,8 @@ public class UsersController : ControllerBase
     // POST api/users
     [HttpPost]
     [SwaggerOperation(Summary = "Cria um novo usuário.")]
-    [ProducesResponseType(typeof(ResponseUserDto), StatusCodes.Status201Created)]
-    public async Task<ActionResult<ResponseUserDto>> Create([FromBody] CreateUserDto request)
+    [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create([FromBody] CreateUserDto request)
     {
         var user = await _service.CreateAsync(request);
 
@@ -60,5 +72,4 @@ public class UsersController : ControllerBase
             ResultViewModel<ResponseUserDto>.Ok("Usuário criado com sucesso!", user)
         );
     }
-
 }
