@@ -20,20 +20,21 @@ namespace agileTrackerServer.Services
             return projects.Select(MapToDto);
         }
 
-        public async Task<ProjectResponseDto?> GetByIdAsync(Guid id)
+        public async Task<ProjectResponseDto?> GetByIdAsync(Guid id, Guid OwnerId)
         {
-            var project = await _repository.GetByIdAsync(id);
+            var project = await _repository.GetByIdAsync(id, OwnerId);
             return project is null ? null : MapToDto(project);
         }
 
-        public async Task<ProjectResponseDto> CreateAsync(CreateProjectDto dto)
+        public async Task<ProjectResponseDto> CreateAsync(CreateProjectDto dto, Guid OwnerId)
         {
+            
             var project = new Project
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Description = dto.Description,
-                OwnerId = dto.OwnerId,
+                OwnerId = OwnerId,
                 Status = "Active",          
                 CreatedAt = DateTime.UtcNow,
             };
@@ -42,7 +43,7 @@ namespace agileTrackerServer.Services
             await _repository.SaveChangesAsync();
 
             // recarrega com Owner incluído se precisar do OwnerName
-            var created = await _repository.GetByIdAsync(project.Id) ?? project;
+            var created = await _repository.GetByIdAsync(project.Id, OwnerId) ?? project;
 
             return MapToDto(created);
         }

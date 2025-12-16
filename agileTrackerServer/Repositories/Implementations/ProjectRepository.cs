@@ -13,9 +13,14 @@ namespace agileTrackerServer.Repositories.Implementations
         public async Task<IEnumerable<Project>> GetAllAsync() =>
             await _context.Projects.Include(p => p.Owner).ToListAsync();
 
-        public async Task<Project?> GetByIdAsync(Guid id) =>
-            await _context.Projects.Include(p => p.Owner)
-                .FirstOrDefaultAsync(p => p.Id == id);
+        public async Task<Project?> GetByIdAsync(Guid id, Guid ownerId) =>
+            await _context.Projects
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p =>
+                    p.Id == id &&
+                    p.OwnerId == ownerId
+                );
+
 
         public async Task AddAsync(Project project)
         {

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using agileTrackerServer.Models.Dtos.Project;
 using agileTrackerServer.Models.ViewModels;
 using agileTrackerServer.Services;
@@ -20,6 +21,7 @@ namespace agileTrackerServer.Controllers
         }
 
         // GET api/projects
+        [Authorize(Policy = "AdminOnly")]
         [HttpGet]
         [SwaggerOperation(Summary = "Lista todos os projetos.")]
         [ProducesResponseType(typeof(ResultViewModel<IEnumerable<ProjectResponseDto>>), StatusCodes.Status200OK)]
@@ -36,12 +38,22 @@ namespace agileTrackerServer.Controllers
         }
 
         // GET api/projects/{id}
+        [Authorize]
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Busca um projeto pelo ID.")]
         [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetById(string id)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(
+                    ResultViewModel.Fail("Usuário não autenticado.")
+                );
+            }
+            
             // 1. Validar GUID manualmente
             if (!Guid.TryParse(id, out var guid))
             {
@@ -54,7 +66,7 @@ namespace agileTrackerServer.Controllers
             }
 
             // 2. Buscar o projeto
-            var project = await _service.GetByIdAsync(guid);
+            var project = await _service.GetByIdAsync(guid, userId);
 
             if (project == null)
             {
@@ -76,12 +88,22 @@ namespace agileTrackerServer.Controllers
         }
 
         // POST api/projects
+        [Authorize]
         [HttpPost]
         [SwaggerOperation(Summary = "Cria um novo projeto.")]
         [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status201Created)]
         public async Task<IActionResult> Create([FromBody] CreateProjectDto request)
         {
-            var project = await _service.CreateAsync(request);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(
+                    ResultViewModel.Fail("Usuário não autenticado.")
+                );
+            }
+
+            var project = await _service.CreateAsync(request, userId);
 
             return CreatedAtAction(
                 nameof(GetById),

@@ -64,9 +64,8 @@ namespace agileTrackerServer.Data
                 
                 entity.HasCheckConstraint(
                       "CK_User_Type",
-                      "\"Type\" IN ('Free', 'Plus')"
+                      "\"Type\" IN ('Free', 'Plus', 'Admin')"
                 );
-
             });
 
             modelBuilder.Entity<Project>(entity =>

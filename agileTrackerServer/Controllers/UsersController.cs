@@ -1,6 +1,7 @@
 using agileTrackerServer.Models.Dtos.User;
 using agileTrackerServer.Models.ViewModels;
 using agileTrackerServer.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -18,6 +19,7 @@ public class UsersController : ControllerBase
     }
     
     // GET api/users/{id}
+    [Authorize]
     [HttpGet("{id}")]
     [SwaggerOperation(Summary = "Obtém um usuário pelo ID.")]
     [ProducesResponseType(typeof(ResultViewModel<ResponseUserDto>), StatusCodes.Status200OK)]

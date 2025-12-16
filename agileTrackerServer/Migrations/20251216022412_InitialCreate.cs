@@ -30,7 +30,7 @@ namespace agileTrackerServer.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_users", x => x.Id);
-                    table.CheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus')");
+                    table.CheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus', 'Admin')");
                 });
 
             migrationBuilder.CreateTable(

@@ -1,5 +1,6 @@
 using agileTrackerServer.Models.Dtos.User;
 using agileTrackerServer.Models.Entities;
+using agileTrackerServer.Models.Enums;
 using agileTrackerServer.Repositories.Interfaces;
 using agileTrackerServer.Utils;
 
@@ -26,9 +27,12 @@ namespace agileTrackerServer.Services
 
         public async Task<(ResponseUserDto user, string token)> CreateAsync(CreateUserDto dto)
         {
+            if (dto.Type == UserType.Admin)
+                throw new Exception("Nâo é permitido criar um usuário admin!");
+                
             if (await _repository.EmailExistsAsync(dto.Email))
                 throw new Exception("Já existe um usuário com este email.");
-    
+            
             var user = new User
             {
                 Id = Guid.NewGuid(),

@@ -10,7 +10,4 @@ public class CreateProjectDto
 
     [SwaggerSchema("Descrição do projeto.")]
     public string Description { get; set; } = string.Empty;
-
-    [SwaggerSchema("ID do usuário que será o dono do projeto.")]
-    public Guid OwnerId { get; set; }
 }

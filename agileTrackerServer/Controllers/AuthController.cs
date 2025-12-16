@@ -71,11 +71,13 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var userId = User.FindFirstValue("sub");
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (userId is null)
+        if (string.IsNullOrEmpty(userId))
         {
-            return Unauthorized(ResultViewModel.Fail("Usuário não autenticado."));
+            return Unauthorized(
+                ResultViewModel.Fail("Usuário não autenticado.")
+            );
         }
 
         var typeClaim = User.FindFirstValue("Type");

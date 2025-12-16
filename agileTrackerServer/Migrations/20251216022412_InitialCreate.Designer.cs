@@ -12,7 +12,7 @@ using agileTrackerServer.Data;
 namespace agileTrackerServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251114015231_InitialCreate")]
+    [Migration("20251216022412_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -108,7 +108,7 @@ namespace agileTrackerServer.Migrations
 
                     b.ToTable("users", null, t =>
                         {
-                            t.HasCheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus')");
+                            t.HasCheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus', 'Admin')");
                         });
                 });
 

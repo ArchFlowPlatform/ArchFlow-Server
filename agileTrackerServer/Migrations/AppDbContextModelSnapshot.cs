@@ -105,7 +105,7 @@ namespace agileTrackerServer.Migrations
 
                     b.ToTable("users", null, t =>
                         {
-                            t.HasCheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus')");
+                            t.HasCheckConstraint("CK_User_Type", "\"Type\" IN ('Free', 'Plus', 'Admin')");
                         });
                 });
 
