@@ -85,7 +85,7 @@ Desenvolver uma plataforma que permita que equipes organizem e acompanhem projet
 ## 🏗️ Tecnologias e Arquitetura
 - **Frontend**: [Next.js](https://nextjs.org/) (React, TypeScript, SSR/SSG)  
 - **Backend**: [.NET 8 (ASP.NET Core)](https://dotnet.microsoft.com/)  
-- **Banco de Dados**: SQL Server  
+- **Banco de Dados**:  POSTGRESQL
 - **Autenticação**: JWT + Refresh Tokens  
 - **Arquitetura**:  
   - Aplicação de **DDD (Domain-Driven Design)**  
