@@ -16,6 +16,8 @@ namespace agileTrackerServer.Data
 
         public DbSet<User> Users => Set<User>();
         public DbSet<Project> Projects => Set<Project>();
+        public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+
 
         // ================================
         // 🔹 Configurações adicionais
@@ -98,6 +100,49 @@ namespace agileTrackerServer.Data
                       "\"Status\" IN ('Active', 'Archived')"
                 );
             });
+            modelBuilder.Entity<ProjectMember>(entity =>
+            {
+                entity.ToTable("project_members");
+            
+                entity.HasKey(pm => pm.Id);
+            
+                entity.Property(pm => pm.Id)
+                      .ValueGeneratedOnAdd();
+            
+                entity.Property(pm => pm.ProjectId)
+                      .IsRequired();
+            
+                entity.Property(pm => pm.UserId)
+                      .IsRequired();
+            
+                entity.Property(pm => pm.Role)
+                      .HasConversion<string>()
+                      .HasMaxLength(30)
+                      .IsRequired();
+            
+                entity.Property(pm => pm.JoinedAt)
+                      .HasDefaultValueSql("NOW()")
+                      .IsRequired();
+            
+                // 🔗 Relacionamentos (forma segura)
+                entity.HasOne<Project>()
+                      .WithMany()
+                      .HasForeignKey(pm => pm.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(pm => pm.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            
+                entity.HasIndex(pm => new { pm.ProjectId, pm.UserId })
+                      .IsUnique();
+                  entity.HasCheckConstraint(
+                        "CK_ProjectMember_Role",
+                        "\"Role\" IN ('Owner', 'ScrumMaster', 'ProductOwner', 'Developer')"
+                  );
+            });
+
         }
     }
 }
