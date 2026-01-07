@@ -1,3 +1,5 @@
+using agileTrackerServer.Infrastructure.Email;
+using agileTrackerServer.Infrastructure.Email.EmailTemplates;
 using agileTrackerServer.Models.Dtos.Project;
 using agileTrackerServer.Models.Entities;
 using agileTrackerServer.Models.Enums;
@@ -9,10 +11,18 @@ namespace agileTrackerServer.Services;
 public class ProjectService
 {
     private readonly IProjectRepository _repository;
+    private readonly IUserRepository _userRepository;
+    private readonly IProjectInviteRepository _inviteRepository;
+    private readonly IEmailService _emailSerivce;
+    private readonly IConfiguration _configuration;
 
-    public ProjectService(IProjectRepository repository)
+    public ProjectService(IProjectRepository repository, IUserRepository userRepository, IProjectInviteRepository inviteRepository, IEmailService emailSerivce,  IConfiguration configuration)
     {
         _repository = repository;
+        _userRepository = userRepository;
+        _inviteRepository = inviteRepository;
+        _emailSerivce = emailSerivce;
+        _configuration = configuration;
     }
 
     public async Task<IEnumerable<ProjectResponseDto>> GetAllAsync(Guid userId)
@@ -126,6 +136,83 @@ public class ProjectService
             JoinedAt = m.JoinedAt
         });
     }
+    
+    public async Task InviteMemberAsync(
+        Guid projectId,
+        Guid executorUserId,
+        string email,
+        MemberRole role)
+    {
+        // 1) Projeto + permissão (você já valida acesso via GetByIdAsync)
+        var project = await _repository.GetByIdAsync(projectId, executorUserId)
+                      ?? throw new DomainException("Projeto não encontrado.");
+
+        // 2) Quem convidou (inviter = executorUser)
+        var inviter = await _userRepository.GetByIdAsync(executorUserId)
+                      ?? throw new DomainException("Usuário executor não encontrado.");
+
+        // 3) Evita convites duplicados ativos
+        if (await _inviteRepository.ExistsActiveInviteAsync(projectId, email))
+            throw new DomainException("Já existe um convite ativo para este email.");
+
+        // 4) Cria e persiste (token será utilizado após salvar)
+        var invite = new ProjectInvite(
+            projectId,
+            email,
+            role,
+            TimeSpan.FromDays(3)
+        );
+
+        await _inviteRepository.AddAsync(invite);
+        await _inviteRepository.SaveChangesAsync();
+
+        // 5) Monta a URL com o token salvo
+        var baseUrl = _configuration["App:FrontendBaseUrl"]
+                      ?? throw new DomainException("FrontendBaseUrl não configurado.");
+
+        // Exemplo de rota no frontend:
+        // /invites/accept?token=XYZ
+        var acceptUrl = $"{baseUrl.TrimEnd('/')}/invites/accept?token={invite.Token}";
+
+        // 6) Envia email
+        await _emailSerivce.SendAsync(
+            invite.Email,
+            $"Convite para o projeto {project.Name}",
+            ProjectInviteTemplate.Build(
+                project.Name,
+                inviter.Name,
+                acceptUrl
+            )
+        );
+    }
+    
+    public async Task AcceptInviteAsync(
+        string token,
+        Guid userId)
+    {
+        var invite = await _inviteRepository.GetByTokenAsync(token)
+                     ?? throw new DomainException("Convite inválido.");
+
+        invite.Accept();
+
+        // adiciona membro real
+        var project = await _repository.GetByIdAsync(invite.ProjectId, userId)
+                      ?? throw new DomainException("Projeto não encontrado.");
+
+        var userInvited = await _userRepository.GetByEmailAsync(invite.Email)
+                        ?? throw new DomainException("Usuário não encontrado.");
+
+        project.AddMember(
+            executorUserId: userId,
+            newUserId: userInvited.Id,
+            role: invite.Role
+        );
+        
+        _inviteRepository.Delete(invite);
+        await _inviteRepository.SaveChangesAsync();
+    }
+
+
 
     
     private static ProjectResponseDto MapToDto(Project project)

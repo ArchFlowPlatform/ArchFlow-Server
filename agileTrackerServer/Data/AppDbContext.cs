@@ -17,6 +17,8 @@ namespace agileTrackerServer.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<Project> Projects => Set<Project>();
         public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+        public DbSet<ProjectInvite> ProjectInvites => Set<ProjectInvite>();
+
 
 
         // ================================
@@ -130,7 +132,43 @@ namespace agileTrackerServer.Data
                         "\"Role\" IN ('Owner', 'ScrumMaster', 'ProductOwner', 'Developer')"
                   );
             });
+            modelBuilder.Entity<ProjectInvite>(entity =>
+            {
+                  entity.ToTable("project_invites");
 
+                  entity.HasKey(i => i.Id);
+
+                  entity.Property(i => i.Email)
+                        .HasMaxLength(255)
+                        .IsRequired();
+
+                  entity.Property(i => i.Token)
+                        .IsRequired();
+
+                  entity.Property(i => i.Role)
+                        .HasConversion<string>()
+                        .IsRequired();
+
+                  entity.Property(i => i.ExpiresAt)
+                        .IsRequired();
+
+                  entity.Property(i => i.CreatedAt)
+                        .IsRequired();
+
+                  entity.Property(i => i.Accepted)
+                        .IsRequired();
+
+                  entity.HasIndex(i => i.Token)
+                        .IsUnique();
+
+                  entity.HasIndex(i => new { i.ProjectId, i.Email })
+                        .IsUnique();
+
+                  entity.HasOne<Project>()
+                        .WithMany()
+                        .HasForeignKey(i => i.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

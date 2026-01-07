@@ -33,6 +33,14 @@ public class UserService
 
         return MapToDto(user);
     }
+    
+    public async Task<ResponseUserDto> GetByEmailAsync(string email)
+    {
+        var user = await _repository.GetByEmailAsync(email)
+                   ?? throw new DomainException("Usuário não encontrado.");
+
+        return MapToDto(user);
+    }
 
     // ============================
     // CREATE

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using agileTrackerServer.Data;
+using agileTrackerServer.Infrastructure.Email;
 using agileTrackerServer.Middlewares;
 using agileTrackerServer.Models.ViewModels;
 using agileTrackerServer.Repositories.Implementations;
@@ -149,6 +150,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
+builder.Services.AddScoped<IProjectInviteRepository, ProjectInviteRepository>();
 
 // Services
 builder.Services.AddScoped<UserService>();
@@ -158,6 +160,8 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ProjectAuthorizationService>();
 builder.Services.AddScoped<ProjectRoleAuthorizationFilter>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+
 
 builder.Services.AddControllers(options =>
 {

@@ -167,5 +167,36 @@ public class ProjectsController : ControllerBase
             )
         );
     }
+    
+    [Authorize]
+    [AuthorizeProjectRole(MemberRole.Owner, MemberRole.ScrumMaster)]
+    [HttpPost("{id:guid}/invites")]
+    public async Task<IActionResult> InviteMember(
+        Guid id,
+        InviteProjectMemberDto dto)
+    {
+        var userId = User.GetUserId();
+
+        await _service.InviteMemberAsync(
+            id,
+            userId,
+            dto.Email,
+            dto.Role
+        );
+
+        return Ok(ResultViewModel.Ok("Convite enviado com sucesso."));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("invites/{token}/accept")]
+    public async Task<IActionResult> AcceptInvite(string token)
+    {
+        var userId = User.GetUserId();
+
+        await _service.AcceptInviteAsync(token, userId);
+
+        return Ok(ResultViewModel.Ok("Convite aceito com sucesso."));
+    }
+
 
 }
