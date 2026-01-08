@@ -18,6 +18,10 @@ namespace agileTrackerServer.Data
         public DbSet<Project> Projects => Set<Project>();
         public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
         public DbSet<ProjectInvite> ProjectInvites => Set<ProjectInvite>();
+        public DbSet<ProductBacklog> ProductBacklogs => Set<ProductBacklog>();
+        public DbSet<Epic> Epics => Set<Epic>();
+        public DbSet<UserStory> UserStories => Set<UserStory>();
+
 
 
 
@@ -168,6 +172,184 @@ namespace agileTrackerServer.Data
                         .WithMany()
                         .HasForeignKey(i => i.ProjectId)
                         .OnDelete(DeleteBehavior.Cascade);
+            });
+            
+            modelBuilder.Entity<ProductBacklog>(entity =>
+            {
+                  entity.ToTable("product_backlogs");
+
+                  entity.HasKey(pb => pb.Id);
+
+                  entity.Property(pb => pb.Id)
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                  entity.Property(pb => pb.ProjectId)
+                        .IsRequired();
+
+                  // 🔐 só pode existir 1 backlog por projeto
+                  entity.HasIndex(pb => pb.ProjectId)
+                        .IsUnique();
+
+                  entity.Property(pb => pb.Overview)
+                        .HasColumnType("text");
+
+                  entity.Property(pb => pb.CreatedAt)
+                        .HasDefaultValueSql("NOW()")
+                        .IsRequired();
+
+                  entity.Property(pb => pb.UpdatedAt)
+                        .HasDefaultValueSql("NOW()")
+                        .IsRequired();
+
+                  // ✅ 1:1 Project <-> ProductBacklog
+                  entity.HasOne(pb => pb.Project)
+                        .WithOne(p => p.ProductBacklog)
+                        .HasForeignKey<ProductBacklog>(pb => pb.ProjectId)
+                        .OnDelete(DeleteBehavior.Cascade);
+            });
+            
+            modelBuilder.Entity<Epic>(entity =>
+            {
+                entity.ToTable("epics");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .HasDefaultValueSql("uuid_generate_v4()");
+
+                entity.Property(e => e.ProductBacklogId).IsRequired();
+
+                entity.Property(e => e.Name)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(e => e.Description)
+                    .HasColumnType("text");
+
+                entity.Property(e => e.BusinessValue)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(e => e.Priority)
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(e => e.Color)
+                    .HasMaxLength(7)
+                    .HasDefaultValue("#3498db")
+                    .IsRequired();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasIndex(e => e.ProductBacklogId);
+
+                entity.HasOne(e => e.ProductBacklog)
+                    .WithMany(pb => (IEnumerable<Epic>)pb.Epics) // EF precisa da nav; se der conflito, use pb => pb.Epics no seu código
+                    .HasForeignKey(e => e.ProductBacklogId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasCheckConstraint(
+                    "CK_Epic_BusinessValue",
+                    "\"BusinessValue\" IN ('High','Medium','Low')"
+                );
+
+                entity.HasCheckConstraint(
+                    "CK_Epic_Status",
+                    "\"Status\" IN ('Draft','Active','Completed')"
+                );
+            });
+
+            modelBuilder.Entity<UserStory>(entity =>
+            {
+                entity.ToTable("user_stories");
+                entity.HasKey(us => us.Id);
+
+                entity.Property(us => us.Id)
+                    .HasDefaultValueSql("uuid_generate_v4()");
+
+                entity.Property(us => us.EpicId).IsRequired();
+
+                entity.Property(us => us.Title)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(us => us.Persona)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(us => us.Description)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(us => us.AcceptanceCriteria)
+                    .HasColumnType("text");
+
+                entity.Property(us => us.Complexity)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(us => us.Effort);
+
+                entity.Property(us => us.Dependencies)
+                    .HasColumnType("text");
+
+                entity.Property(us => us.Priority)
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(us => us.BusinessValue)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(us => us.Status)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(us => us.AssigneeId);
+
+                entity.Property(us => us.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.Property(us => us.UpdatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasIndex(us => us.EpicId);
+
+                entity.HasOne(us => us.Epic)
+                    .WithMany(e => (IEnumerable<UserStory>)e.UserStories)
+                    .HasForeignKey(us => us.EpicId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasCheckConstraint(
+                    "CK_UserStory_Complexity",
+                    "\"Complexity\" IN ('Low','Medium','High','VeryHigh')"
+                );
+
+                entity.HasCheckConstraint(
+                    "CK_UserStory_BusinessValue",
+                    "\"BusinessValue\" IN ('High','Medium','Low')"
+                );
+
+                entity.HasCheckConstraint(
+                    "CK_UserStory_Status",
+                    "\"Status\" IN ('Draft','Ready','InProgress','Done')"
+                );
             });
         }
     }

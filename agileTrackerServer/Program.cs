@@ -152,12 +152,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IProductBacklogRepository, ProductBacklogRepository>();
+builder.Services.AddScoped<IEpicRepository, EpicRepository>();
+builder.Services.AddScoped<IUserStoryRepository,  UserStoryRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectInviteRepository, ProjectInviteRepository>();
 
 // Services
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<BacklogService>();
 builder.Services.AddScoped<SprintService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TokenService>();

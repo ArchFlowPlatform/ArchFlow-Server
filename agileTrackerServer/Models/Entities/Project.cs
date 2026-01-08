@@ -14,6 +14,9 @@ public class Project
     public Guid OwnerId { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
+    // ✅ 1:1 ProductBacklog
+    public ProductBacklog ProductBacklog { get; private set; } = null!;
+
     public IReadOnlyCollection<ProjectMember> Members => _members.AsReadOnly();
 
     private Project() { }
@@ -41,6 +44,9 @@ public class Project
                 role: MemberRole.Owner
             )
         );
+
+        // ✅ PRODUCT BACKLOG É CRIADO JUNTO COM O PROJETO
+        ProductBacklog = new ProductBacklog(projectId: Id);
     }
 
     // =========================

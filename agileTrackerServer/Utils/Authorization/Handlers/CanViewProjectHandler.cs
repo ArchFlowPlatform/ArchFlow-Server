@@ -26,7 +26,14 @@ public class CanViewProjectHandler : AuthorizationHandler<CanViewProjectRequirem
             return;
 
         var routeValues = _http.HttpContext?.Request.RouteValues;
-        if (routeValues == null || !routeValues.TryGetValue("id", out var projectIdObj))
+        if (routeValues == null)
+            return;
+
+        // aceita tanto "projectId" quanto "id"
+        object? projectIdObj = null;
+
+        if (!routeValues.TryGetValue("projectId", out projectIdObj) &&
+            !routeValues.TryGetValue("id", out projectIdObj))
             return;
 
         if (!Guid.TryParse(projectIdObj?.ToString(), out var projectId))
@@ -38,4 +45,5 @@ public class CanViewProjectHandler : AuthorizationHandler<CanViewProjectRequirem
         if (isMember)
             context.Succeed(requirement);
     }
+
 }

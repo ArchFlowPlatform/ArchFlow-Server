@@ -21,6 +21,7 @@ public class ProjectRepository : IProjectRepository
     {
         return await _context.Projects
             .Include(p => p.Members)
+            .Include(p => p.ProductBacklog)
             .Where(p =>
                 p.Status == ProjectStatus.Active &&
                 p.Members.Any(m => m.UserId == userId)
@@ -32,12 +33,15 @@ public class ProjectRepository : IProjectRepository
     {
         return await _context.Projects
             .Include(p => p.Members)
+            .Include(p => p.ProductBacklog)
             .FirstOrDefaultAsync(p =>
                 p.Id == projectId &&
                 p.Status == ProjectStatus.Active &&
                 p.Members.Any(m => m.UserId == userId)
             );
     }
+    
+    
 
     public async Task AddAsync(Project project)
     {
