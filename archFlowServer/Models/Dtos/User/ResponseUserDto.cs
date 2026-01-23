@@ -6,7 +6,7 @@ namespace archFlowServer.Models.Dtos.User;
 [SwaggerSchema(Description = "Dados de retorno de um usuário.")]
 public class ResponseUserDto
 {
-    [SwaggerSchema("Identificador Ãºnico do usuário.")]
+    [SwaggerSchema("Identificador unico do usuário.")]
     public Guid Id { get; set; }
 
     [SwaggerSchema("Nome do usuário.")]
@@ -21,14 +21,14 @@ public class ResponseUserDto
     [SwaggerSchema("URL do avatar do usuário.")]
     public string? AvatarUrl { get; set; }
 
-    [SwaggerSchema("Data de criaÃ§Ã£o do registro.")]
+    [SwaggerSchema("Data de criação do registro.")]
     public DateTime CreatedAt { get; set; }
 
-    [SwaggerSchema("Data de atualizaÃ§Ã£o do registro.")]
+    [SwaggerSchema("Data de atualização do registro.")]
     public DateTime UpdatedAt { get; set; }
 
     // ============================
-    // âœ… CONSTRUTOR DE MAPEAMENTO
+    // CONSTRUTOR DE MAPEAMENTO
     // ============================
     public ResponseUserDto(Entities.User user)
     {
@@ -42,8 +42,8 @@ public class ResponseUserDto
     }
 
     // ============================
-    // ðŸ”¹ CONSTRUTOR VAZIO
-    // NecessÃ¡rio para serializaÃ§Ã£o / Swagger
+    // CONSTRUTOR VAZIO
+    // Necessário para serialização / Swagger
     // ============================
     public ResponseUserDto() { }
 }

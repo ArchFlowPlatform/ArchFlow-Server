@@ -1,5 +1,6 @@
 ﻿using archFlowServer.Models.Enums;
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace archFlowServer.Models.Dtos.User;
 
@@ -7,15 +8,18 @@ namespace archFlowServer.Models.Dtos.User;
 public class CreateUserDto
 {
     [SwaggerSchema("Nome completo do usuário.")]
+    [Required(ErrorMessage = "Nome é obrigatório.")]
     public string Name { get; set; } = string.Empty;
 
-    [SwaggerSchema("Email do usuário. Deve ser Ãºnico.")]
+    [SwaggerSchema("Email do usuário. Deve ser único.")]
+    [Required(ErrorMessage = "Email é obrigatório.")]
     public string Email { get; set; } = string.Empty;
     
     [SwaggerSchema("Tipo do usuário (exemplo: 'Free', 'Plus').")]
     public UserType Type { get; set; } = UserType.Free;
 
-    [SwaggerSchema("Senha em texto puro para cadastro. SerÃ¡ hasheada no servidor.")]
+    [SwaggerSchema("Senha em texto puro para cadastro. Será hasheada no servidor.")]
+    [Required(ErrorMessage = "Senha é obrigatória.")]
     public string Password { get; set; } = string.Empty;
     
     [SwaggerSchema("Url da imagem de perfil do usuário")]
