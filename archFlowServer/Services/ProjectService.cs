@@ -222,6 +222,16 @@ public class ProjectService
         await _inviteRepository.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<ProjectInvite>> GetAllProjectsInviteAsync(Guid projectId, Guid userId)
+    {
+        var project = await _repository.GetByIdAsync(projectId, userId)
+                     ?? throw new NotFoundException("Projeto não encontrado.");
+
+        var invites = await _inviteRepository.GetAllAsync(projectId)
+                     ?? throw new DomainException("Projeto Inválido.");
+
+        return invites;
+    }
 
 
     

@@ -1,5 +1,6 @@
 ﻿using archFlowServer.Data;
 using archFlowServer.Models.Entities;
+using archFlowServer.Models.Enums;
 using archFlowServer.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,13 @@ public class ProjectInviteRepository : IProjectInviteRepository
     public async Task AddAsync(ProjectInvite invite)
     {
         await _context.Set<ProjectInvite>().AddAsync(invite);
+    }
+
+    public async Task<IEnumerable<ProjectInvite>> GetAllAsync(Guid projectId)
+    {
+        return await _context.Set<ProjectInvite>()
+            .Where(i => i.ProjectId == projectId)
+            .ToListAsync();
     }
 
     public async Task<ProjectInvite?> GetByTokenAsync(string token)

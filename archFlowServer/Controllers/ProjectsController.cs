@@ -177,7 +177,22 @@ public class ProjectsController : ControllerBase
             )
         );
     }
-    
+
+    [Authorize]
+    [Authorize(Policy = "CanViewProject")]
+    [HttpGet("{id:guid}/invites")]
+    public async Task<IActionResult> GetAllProjectInvites(Guid id)
+    {
+        var userId = User.GetUserId();
+
+        var invites = await _service.GetAllProjectsInviteAsync(
+            id,
+            userId
+        );
+
+        return Ok(ResultViewModel.Ok("Convites carregados com sucesso.", invites));
+    }
+
     [Authorize]
     [Authorize(Policy = "CanManageMembers")]
     [HttpPost("{id:guid}/invites")]
