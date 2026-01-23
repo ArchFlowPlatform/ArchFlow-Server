@@ -1,6 +1,0 @@
-@agileTrackerServer_HostAddress = http://localhost:5064
-
-GET {{agileTrackerServer_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
