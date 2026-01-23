@@ -1,6 +1,6 @@
 # 🚀 ArchFlow Server
 
-> Backend robusto e escalável para gestão de projetos ágeis, construído com .NET 9 e seguindo princípios de Domain-Driven Design (DDD).
+> Backend robusto e escalável para gestão de projetos ágeis, construído com .NET 9 e seguindo arquitetura em camadas.
 
 ---
 
@@ -37,7 +37,7 @@ O sistema permite:
 - Sistema de autenticação via JWT com cookies HttpOnly
 
 **Diferenciais técnicos:**
-- Arquitetura limpa baseada em DDD
+- Arquitetura limpa baseada em camadas
 - Separação clara de responsabilidades
 - Validações em múltiplas camadas
 - Tratamento global de exceções
