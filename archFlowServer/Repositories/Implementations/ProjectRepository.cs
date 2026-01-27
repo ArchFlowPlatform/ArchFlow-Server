@@ -16,36 +16,40 @@ public class ProjectRepository : IProjectRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Project>> GetAllAsync(Guid userId)
+    public async Task<IReadOnlyList<Project>> GetAllActiveAsync()
     {
         return await _context.Projects
             .Include(p => p.Members)
-            .Where(p =>
-                p.Status == ProjectStatus.Active &&
-                p.Members.Any(m => m.UserId == userId)
-            )
+            .Where(p => p.Status == ProjectStatus.Active)
             .ToListAsync();
     }
 
-    public async Task<Project?> GetByIdIncludingArchivedAsync(Guid projectId, Guid userId)
+    public async Task<Project?> GetArchivedByIdAsync(Guid projectId)
     {
         return await _context.Projects
             .Include(p => p.Members)
             .FirstOrDefaultAsync(p =>
                 p.Id == projectId &&
-                p.Status == ProjectStatus.Archived &&
-                p.Members.Any(m => m.UserId == userId)
+                p.Status == ProjectStatus.Archived
             );
     }
 
-    public async Task<Project?> GetByIdAsync(Guid projectId, Guid userId)
+    public async Task<Project?> GetActiveByIdAsync(Guid projectId)
     {
         return await _context.Projects
             .Include(p => p.Members)
             .FirstOrDefaultAsync(p =>
                 p.Id == projectId &&
-                p.Status == ProjectStatus.Active &&
-                p.Members.Any(m => m.UserId == userId)
+                p.Status == ProjectStatus.Active
+            );
+    }
+    public async Task<Project?> GetByIdAsync(Guid projectId)
+    {
+        return await _context.Projects
+            .Include(p => p.Members)
+            .FirstOrDefaultAsync(p =>
+                p.Id == projectId &&
+                p.Status == ProjectStatus.Active
             );
     }
     
@@ -56,14 +60,12 @@ public class ProjectRepository : IProjectRepository
         await _context.Projects.AddAsync(project);
     }
     
-    public async Task<IEnumerable<ProjectMember>> GetMembersAsync(
-        Guid projectId,
-        Guid userId)
+    public async Task<IReadOnlyList<ProjectMember>> GetMembersAsync(
+        Guid projectId)
     {
         // garante que o usuário faz parte do projeto
         var hasAccess = await _context.ProjectMembers.AnyAsync(pm =>
-            pm.ProjectId == projectId &&
-            pm.UserId == userId);
+            pm.ProjectId == projectId);
 
         if (!hasAccess)
             throw new DomainException("Você não tem acesso a este projeto.");

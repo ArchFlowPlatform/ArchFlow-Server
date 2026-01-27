@@ -3,7 +3,6 @@ using archFlowServer.Models.Dtos.Backlog;
 using archFlowServer.Models.Entities;
 using archFlowServer.Models.Exceptions;
 using archFlowServer.Repositories.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace archFlowServer.Services;
 
@@ -29,82 +28,88 @@ public class BacklogService
         _storyRepository = storyRepository;
     }
 
-    public async Task CreateEpicAsync(Guid projectId, Guid userId, CreateEpicDto dto)
+    // ================================
+    // Create
+    // ================================
+
+    public async Task CreateEpicAsync(Guid projectId, CreateEpicDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
             ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
-        // âœ… Position Ã© sempre calculado no backend (append)
         var nextPosition = await _epicRepository.GetNextPositionAsync(backlog.Id);
 
         var epic = new Epic(
-            backlog.Id,
-            dto.Name,
-            dto.Description,
-            dto.BusinessValue,
-            dto.Status,
+            productBacklogId: backlog.Id,
+            name: dto.Name,
+            description: dto.Description,
+            businessValue: dto.BusinessValue,
+            status: dto.Status,
             position: nextPosition,
-            dto.Priority,
-            dto.Color,
-            dto.IsArchived,
-            null
+            priority: dto.Priority,
+            color: dto.Color,
+            isArchived: dto.IsArchived,
+            archivedAt: null
         );
 
         await _epicRepository.AddAsync(epic);
         await _epicRepository.SaveChangesAsync();
     }
 
-    public async Task CreateUserStoryAsync(Guid projectId, int epicId, Guid userId, CreateUserStoryDto dto)
+    public async Task CreateUserStoryAsync(Guid projectId, int epicId, CreateUserStoryDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
-
-        var epic = await _epicRepository.GetByIdAsync(epicId)
-            ?? throw new NotFoundException("Ã‰pico não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
             ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
-        if (epic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("Este Ã©pico não pertence ao projeto informado.");
+        var epic = await _epicRepository.GetByIdAsync(epicId)
+            ?? throw new NotFoundException("Épico não encontrado.");
 
-        // âœ… Position Ã© sempre calculado no backend (append)
+        if (epic.ProductBacklogId != backlog.Id)
+            throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
+
         var nextPosition = await _storyRepository.GetNextPositionAsync(epicId);
 
         var story = new UserStory(
-            epicId,
-            dto.Title,
-            dto.Persona,
-            dto.Description,
-            dto.AcceptanceCriteria,
-            dto.Complexity,
-            dto.Effort,
-            dto.Dependencies,
-            dto.Priority,
-            dto.BusinessValue,
-            dto.Status,
+            epicId: epicId,
+            title: dto.Title,
+            persona: dto.Persona,
+            description: dto.Description,
+            acceptanceCriteria: dto.AcceptanceCriteria,
+            complexity: dto.Complexity,
+            effort: dto.Effort,
+            dependencies: dto.Dependencies,
+            priority: dto.Priority,
+            businessValue: dto.BusinessValue,
+            status: dto.Status,
             position: nextPosition,
-            dto.AssigneeId,
-            dto.IsArchived, 
-            null
+            assigneeId: dto.AssigneeId,
+            isArchived: dto.IsArchived,
+            archivedAt: null
         );
 
         await _storyRepository.AddAsync(story);
         await _storyRepository.SaveChangesAsync();
     }
 
-    public async Task<ProductBacklogResponseDto> GetBacklogByProjectIdAsync(Guid projectId, Guid userId)
+    // ================================
+    // Read
+    // ================================
+
+    public async Task<ProductBacklogResponseDto> GetBacklogByProjectIdAsync(Guid projectId)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
             ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
-        var dto = new ProductBacklogResponseDto
+        return new ProductBacklogResponseDto
         {
             Id = backlog.Id,
             ProjectId = backlog.ProjectId,
@@ -112,7 +117,6 @@ public class BacklogService
             CreatedAt = backlog.CreatedAt,
             UpdatedAt = backlog.UpdatedAt,
 
-            // âœ… OrdenaÃ§Ã£o por Position (UI) primeiro
             Epics = backlog.Epics
                 .OrderBy(e => e.Position)
                 .ThenByDescending(e => e.Priority)
@@ -158,13 +162,15 @@ public class BacklogService
                 })
                 .ToList()
         };
-
-        return dto;
     }
 
-    public async Task UpdateOverviewAsync(Guid projectId, Guid userId, UpdateBacklogOverviewDto dto)
+    // ================================
+    // Update
+    // ================================
+
+    public async Task UpdateOverviewAsync(Guid projectId, UpdateBacklogOverviewDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
@@ -175,19 +181,19 @@ public class BacklogService
         await _backlogRepository.SaveChangesAsync();
     }
 
-    public async Task UpdateEpicAsync(Guid projectId, int epicId, Guid userId, UpdateEpicDto dto)
+    public async Task UpdateEpicAsync(Guid projectId, int epicId, UpdateEpicDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
             ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var epic = await _epicRepository.GetByIdAsync(epicId)
-            ?? throw new NotFoundException("Ã‰pico não encontrado.");
+            ?? throw new NotFoundException("Épico não encontrado.");
 
         if (epic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("Este Ã©pico não pertence ao projeto informado.");
+            throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
 
         epic.Update(
             name: dto.Name ?? epic.Name,
@@ -202,9 +208,9 @@ public class BacklogService
         await _epicRepository.SaveChangesAsync();
     }
 
-    public async Task UpdateUserStoryAsync(Guid projectId, int storyId, Guid userId, UpdateUserStoryDto dto)
+    public async Task UpdateUserStoryAsync(Guid projectId, int storyId, UpdateUserStoryDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
@@ -233,62 +239,57 @@ public class BacklogService
 
         await _storyRepository.SaveChangesAsync();
     }
-    public async Task ReorderEpicAsync(Guid projectId, Guid userId, ReorderEpicDto dto)
+
+    // ================================
+    // Reorder / Move
+    // ================================
+
+    public async Task ReorderEpicAsync(Guid projectId, ReorderEpicDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var epic = await _epicRepository.GetByIdAsync(dto.EpicId)
-                   ?? throw new NotFoundException("Ã‰pico não encontrado.");
+            ?? throw new NotFoundException("Épico não encontrado.");
 
         if (epic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("Este Ã©pico não pertence ao projeto informado.");
+            throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
 
         if (dto.ToPosition < 0)
             throw new ValidationException("ToPosition inválido.");
 
         var from = epic.Position;
 
-        // limita ToPosition ao intervalo existente
         var maxPos = await _epicRepository.GetMaxPositionAsync(backlog.Id);
         var to = dto.ToPosition > maxPos ? maxPos : dto.ToPosition;
 
         if (from == to) return;
 
-        // posiÃ§Ã£o temporÃ¡ria livre (fora do range)
         var temp = maxPos + 1;
 
-        // âš ï¸ use transaÃ§Ã£o do DbContext (mesmo contexto do repo)
-        using var tx = await _context.Database.BeginTransactionAsync();
+        await using var tx = await _context.Database.BeginTransactionAsync();
 
-        // 1) tira o Ã©pico da linha (evita conflito no UNIQUE)
         await _epicRepository.SetPositionAsync(epic.Id, temp);
-
-        // 2) shift faixa
         await _epicRepository.ShiftPositionsAsync(backlog.Id, from, to);
-
-        // 3) coloca no destino
         await _epicRepository.SetPositionAsync(epic.Id, to);
 
         await tx.CommitAsync();
     }
 
-
-    public async Task ReorderUserStoryAsync(Guid projectId, Guid userId, ReorderUserStoryDto dto)
+    public async Task ReorderUserStoryAsync(Guid projectId, ReorderUserStoryDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var story = await _storyRepository.GetByIdWithEpicAsync(dto.StoryId)
-                    ?? throw new NotFoundException("User story não encontrada.");
+            ?? throw new NotFoundException("User story não encontrada.");
 
-        // garante que a story pertence ao backlog do projeto
         if (story.Epic.ProductBacklogId != backlog.Id)
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
 
@@ -298,32 +299,25 @@ public class BacklogService
         var epicId = story.EpicId;
         var from = story.Position;
 
-        // clamp ToPosition para o range existente
         var maxPos = await _storyRepository.GetMaxPositionAsync(epicId);
         var to = dto.ToPosition > maxPos ? maxPos : dto.ToPosition;
 
         if (from == to) return;
 
-        // posiÃ§Ã£o temporÃ¡ria fora do range para não violar UNIQUE(EpicId, Position)
         var temp = maxPos + 1;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
-        // 1) tira a story da linha
         await _storyRepository.SetPositionAsync(story.Id, temp);
-
-        // 2) shift intervalo
         await _storyRepository.ShiftPositionsAsync(epicId, from, to);
-
-        // 3) coloca no destino
         await _storyRepository.SetPositionAsync(story.Id, to);
 
         await tx.CommitAsync();
     }
-    
-    public async Task MoveUserStoryAsync(Guid projectId, Guid userId, MoveUserStoryDto dto)
+
+    public async Task MoveUserStoryAsync(Guid projectId, MoveUserStoryDto dto)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         if (dto.ToPosition < 0)
@@ -332,30 +326,25 @@ public class BacklogService
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
             ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
-        // story + epic origem (Include)
         var story = await _storyRepository.GetByIdWithEpicAsync(dto.StoryId)
             ?? throw new NotFoundException("User story não encontrada.");
 
-        // valida origem no projeto
         if (story.Epic.ProductBacklogId != backlog.Id)
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
 
-        // epic destino
         var toEpic = await _epicRepository.GetByIdAsync(dto.ToEpicId)
-            ?? throw new NotFoundException("Ã‰pico de destino não encontrado.");
+            ?? throw new NotFoundException("Épico de destino não encontrado.");
 
-        // valida destino no mesmo projeto/backlog
         if (toEpic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("O Ã©pico de destino não pertence ao projeto informado.");
+            throw new UnauthorizedAccessException("O épico de destino não pertence ao projeto informado.");
 
         var fromEpicId = story.EpicId;
         var fromPosition = story.Position;
         var toEpicId = toEpic.Id;
 
-        // Se o destino Ã© o mesmo Ã©pico, use o reorder normal
         if (fromEpicId == toEpicId)
         {
-            await ReorderUserStoryAsync(projectId, userId, new ReorderUserStoryDto
+            await ReorderUserStoryAsync(projectId, new ReorderUserStoryDto
             {
                 StoryId = dto.StoryId,
                 ToPosition = dto.ToPosition
@@ -363,45 +352,40 @@ public class BacklogService
             return;
         }
 
-        // clamp da posiÃ§Ã£o de destino para [0..max+1] (append permitido)
         var maxDest = await _storyRepository.GetMaxPositionAsync(toEpicId);
         var destCount = maxDest + 1;
         var toPosition = dto.ToPosition > destCount ? destCount : dto.ToPosition;
 
-        // posiÃ§Ã£o temporÃ¡ria segura (no Ã©pico origem) para evitar colisÃµes no UNIQUE durante a operaÃ§Ã£o
         var maxFrom = await _storyRepository.GetMaxPositionAsync(fromEpicId);
         var temp = maxFrom + 1;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
-        // 1) tira a story da posiÃ§Ã£o original (manda para temp dentro do Ã©pico origem)
         await _storyRepository.SetPositionAsync(story.Id, temp);
-
-        // 2) fecha buraco no Ã©pico origem (decrementa quem estava depois)
         await _storyRepository.DecrementPositionsAfterAsync(fromEpicId, fromPosition);
-
-        // 3) abre espaÃ§o no Ã©pico destino (incrementa >= toPosition)
         await _storyRepository.IncrementPositionsFromAsync(toEpicId, toPosition);
-
-        // 4) move de fato: muda EpicId e Position para o destino
         await _storyRepository.SetEpicAndPositionAsync(story.Id, toEpicId, toPosition);
 
         await tx.CommitAsync();
     }
-    
-    public async Task ArchiveEpicAsync(Guid projectId, int epicId, Guid userId)
+
+    // ================================
+    // Archive / Restore
+    // ================================
+
+    public async Task ArchiveEpicAsync(Guid projectId, int epicId)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var epic = await _epicRepository.GetByIdAsync(epicId)
-                   ?? throw new NotFoundException("Ã‰pico não encontrado.");
+            ?? throw new NotFoundException("Épico não encontrado.");
 
         if (epic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("Este Ã©pico não pertence ao projeto informado.");
+            throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
@@ -411,19 +395,19 @@ public class BacklogService
         await tx.CommitAsync();
     }
 
-    public async Task RestoreEpicAsync(Guid projectId, int epicId, Guid userId)
+    public async Task RestoreEpicAsync(Guid projectId, int epicId)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var epic = await _epicRepository.GetByIdIncludingArchivedAsync(epicId)
-                   ?? throw new NotFoundException("Ã‰pico não encontrado.");
+            ?? throw new NotFoundException("Épico não encontrado.");
 
         if (epic.ProductBacklogId != backlog.Id)
-            throw new UnauthorizedAccessException("Este Ã©pico não pertence ao projeto informado.");
+            throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
@@ -432,17 +416,17 @@ public class BacklogService
 
         await tx.CommitAsync();
     }
-    
-    public async Task ArchiveUserStoryAsync(Guid projectId, int storyId, Guid userId)
+
+    public async Task ArchiveUserStoryAsync(Guid projectId, int storyId)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var story = await _storyRepository.GetByIdWithEpicAsync(storyId)
-                    ?? throw new NotFoundException("User story não encontrada.");
+            ?? throw new NotFoundException("User story não encontrada.");
 
         if (story.Epic.ProductBacklogId != backlog.Id)
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
@@ -450,22 +434,20 @@ public class BacklogService
         await _storyRepository.ArchiveAsync(storyId);
     }
 
-    public async Task RestoreUserStoryAsync(Guid projectId, int storyId, Guid userId)
+    public async Task RestoreUserStoryAsync(Guid projectId, int storyId)
     {
-        _ = await _projectRepository.GetByIdAsync(projectId, userId)
+        _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
         var backlog = await _backlogRepository.GetByProjectIdAsync(projectId)
-                      ?? throw new DomainException("Product backlog não encontrado para este projeto.");
+            ?? throw new DomainException("Product backlog não encontrado para este projeto.");
 
         var story = await _storyRepository.GetByIdWithEpicIncludingArchivedAsync(storyId)
-                    ?? throw new NotFoundException("User story não encontrada.");
+            ?? throw new NotFoundException("User story não encontrada.");
 
         if (story.Epic.ProductBacklogId != backlog.Id)
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
 
         await _storyRepository.RestoreAsync(storyId);
     }
-
 }
-

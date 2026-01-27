@@ -19,7 +19,7 @@ public class ProjectAuthorizationService
         Guid userId,
         params MemberRole[] allowedRoles)
     {
-        var project = await _projectRepository.GetByIdAsync(projectId, userId)
+        var project = await _projectRepository.GetByIdAsync(projectId)
                       ?? throw new NotFoundException("Projeto não encontrado.");
 
         if (!project.HasPermission(userId, allowedRoles))

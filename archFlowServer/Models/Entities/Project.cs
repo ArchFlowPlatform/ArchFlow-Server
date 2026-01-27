@@ -24,7 +24,7 @@ public class Project
     public Project(string name, string? description, Guid ownerId)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ValidationException("Nome do projeto Ã© obrigatÃ³rio.");
+            throw new ValidationException("Nome do projeto é obrigatório.");
 
         if (ownerId == Guid.Empty)
             throw new DomainException("OwnerId inválido.");
@@ -58,7 +58,7 @@ public class Project
         EnsurePermission(executorUserId, MemberRole.Owner);
 
         if (_members.Any(m => m.UserId == newUserId))
-            throw new ConflictException("usuário jÃ¡ Ã© membro do projeto.");
+            throw new ConflictException("usuário já é membro do projeto.");
 
         _members.Add(new ProjectMember(Id, newUserId, role));
     }
@@ -68,10 +68,10 @@ public class Project
         EnsurePermission(executorUserId, MemberRole.Owner);
 
         var member = _members.FirstOrDefault(m => m.UserId == userId)
-            ?? throw new DomainException("usuário não Ã© membro do projeto.");
+            ?? throw new DomainException("usuário não é membro do projeto.");
 
         if (member.Role == MemberRole.Owner)
-            throw new DomainException("não Ã© possÃ­vel remover o Owner do projeto.");
+            throw new DomainException("não é possível remover o Owner do projeto.");
 
         _members.Remove(member);
     }
@@ -82,7 +82,7 @@ public class Project
     private void EnsurePermission(Guid userId, params MemberRole[] roles)
     {
         if (!HasPermission(userId, roles))
-            throw new ForbiddenException("PermissÃ£o insuficiente para executar esta aÃ§Ã£o.");
+            throw new ForbiddenException("Permissão insuficiente para executar essa ação.");
     }
 
     public void UpdateDetails(Guid executorUserId, string name, string? description)
@@ -90,7 +90,7 @@ public class Project
         EnsurePermission(executorUserId, MemberRole.Owner);
 
         if (string.IsNullOrWhiteSpace(name))
-            throw new ValidationException("Nome do projeto Ã© obrigatÃ³rio.");
+            throw new ValidationException("Nome do projeto é obrigatório.");
 
         Name = name.Trim();
         Description = description?.Trim() ?? string.Empty;

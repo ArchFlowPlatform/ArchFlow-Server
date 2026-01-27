@@ -17,6 +17,9 @@ namespace ArchFlowServer.Models.Dtos.Project
 
         [SwaggerSchema("Função do membro na equipe (exemplo: 'Owner', 'ScrumMaster', 'ProductOwner', 'Developer').")]
         public MemberRole Role { get; set; }
+        
+        [SwaggerSchema("Token do convite.")]
+        public string Token { get; set; } = string.Empty;
 
         [SwaggerSchema("Data de expiração do convite.")]
         public DateTime ExpiresAt { get; set; }

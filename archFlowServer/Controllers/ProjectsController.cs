@@ -1,5 +1,4 @@
 ﻿using archFlowServer.Models.Dtos.Project;
-using archFlowServer.Models.Entities;
 using archFlowServer.Models.Enums;
 using archFlowServer.Models.ViewModels;
 using archFlowServer.Services;
@@ -26,24 +25,19 @@ public class ProjectsController : ControllerBase
 
     // GET api/projects
     [HttpGet]
-    [Authorize]
     [SwaggerOperation(Summary = "Lista todos os projetos ativos do usuário logado.")]
     [ProducesResponseType(typeof(ResultViewModel<IEnumerable<ProjectResponseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
         var userId = User.GetUserId();
-
         var projects = await _service.GetAllAsync(userId);
 
-        return Ok(
-            ResultViewModel<IEnumerable<ProjectResponseDto>>.Ok(
-                "Projetos carregados com sucesso.",
-                projects
-            )
-        );
+        return Ok(ResultViewModel<IEnumerable<ProjectResponseDto>>.Ok(
+            "Projetos carregados com sucesso.",
+            projects
+        ));
     }
 
-    // GET api/projects/{id}
     // GET api/projects/{id}
     [HttpGet("{id:guid}")]
     [Authorize(Policy = "CanViewProject")]
@@ -53,206 +47,191 @@ public class ProjectsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var userId = User.GetUserId();
-
         var project = await _service.GetByIdAsync(id, userId);
 
-        return Ok(
-            ResultViewModel<ProjectResponseDto>.Ok(
-                "Projeto encontrado com sucesso.",
-                project
-            )
-        );
+        return Ok(ResultViewModel<ProjectResponseDto>.Ok(
+            "Projeto encontrado com sucesso.",
+            project
+        ));
     }
 
     // POST api/projects
-    [Authorize]
     [HttpPost]
     [SwaggerOperation(Summary = "Cria um novo projeto.")]
     [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateProjectDto request)
     {
         var userId = User.GetUserId();
-
         var project = await _service.CreateAsync(request, userId);
 
         return CreatedAtAction(
             nameof(GetById),
             new { id = project.Id },
-            ResultViewModel<ProjectResponseDto>.Ok(
-                "Projeto criado com sucesso.",
-                project
-            )
+            ResultViewModel<ProjectResponseDto>.Ok("Projeto criado com sucesso.", project)
         );
     }
 
     // PUT api/projects/{id}
-    [Authorize]
-    [AuthorizeProjectRole(MemberRole.Owner)]
     [HttpPut("{id:guid}")]
+    [AuthorizeProjectRole(MemberRole.Owner)]
     [SwaggerOperation(Summary = "Atualiza os dados de um projeto.")]
     [ProducesResponseType(typeof(ResultViewModel<ProjectResponseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectDto dto)
     {
         var userId = User.GetUserId();
-
         var updated = await _service.UpdateAsync(id, dto, userId);
 
-        return Ok(
-            ResultViewModel<ProjectResponseDto>.Ok(
-                "Projeto atualizado com sucesso.",
-                updated
-            )
-        );
+        return Ok(ResultViewModel<ProjectResponseDto>.Ok(
+            "Projeto atualizado com sucesso.",
+            updated
+        ));
     }
 
     // POST api/projects/{id}/archive
-    [Authorize]
-    [Authorize(Policy = "CanArchiveProject")]
     [HttpPost("{id:guid}/archive")]
+    [Authorize(Policy = "CanArchiveProject")]
+    [SwaggerOperation(Summary = "Arquiva um projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> Archive(Guid id)
     {
         var userId = User.GetUserId();
-
         await _service.ArchiveAsync(id, userId);
 
         return Ok(ResultViewModel.Ok("Projeto arquivado com sucesso."));
     }
 
-    // POST api/projects/{id}/archive
-    [Authorize]
-    [Authorize(Policy = "CanArchiveProject")]
+    // POST api/projects/{id}/restore
     [HttpPost("{id:guid}/restore")]
+    [Authorize(Policy = "CanArchiveProject")]
+    [SwaggerOperation(Summary = "Restaura um projeto arquivado.")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> Restore(Guid id)
     {
         var userId = User.GetUserId();
-
         await _service.RestoreAsync(id, userId);
 
         return Ok(ResultViewModel.Ok("Projeto restaurado com sucesso."));
     }
 
+    // Members
 
-    [Authorize]
-    [Authorize(Policy = "CanManageMembers")]
     [HttpPost("{id:guid}/members")]
-    public async Task<IActionResult> AddMember(
-        Guid id,
-        AddProjectMemberDto dto)
+    [Authorize(Policy = "CanManageMembers")]
+    [SwaggerOperation(Summary = "Adiciona um membro ao projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddMember(Guid id, [FromBody] AddProjectMemberDto dto)
     {
-        var userId = User.GetUserId();
+        var executorId = User.GetUserId();
 
         await _service.AddMemberAsync(
-            id,
-            userId,
-            dto.UserId,
-            dto.Role
+            projectId: id,
+            executorUserId: executorId,
+            newUserId: dto.UserId,
+            role: dto.Role
         );
 
         return Ok(ResultViewModel.Ok("Membro adicionado com sucesso."));
     }
 
-    [Authorize]
-    [Authorize(Policy = "CanManageMembers")]
     [HttpDelete("{id:guid}/members/{userId:guid}")]
+    [Authorize(Policy = "CanManageMembers")]
+    [SwaggerOperation(Summary = "Remove um membro do projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
     {
         var executorId = User.GetUserId();
 
-        await _service.RemoveMemberAsync(id, executorId, userId);
+        await _service.RemoveMemberAsync(
+            projectId: id,
+            executorUserId: executorId,
+            userId: userId
+        );
 
         return Ok(ResultViewModel.Ok("Membro removido com sucesso."));
     }
-    
-    [Authorize]
-    [Authorize(Policy = "CanViewProject")]
+
     [HttpGet("{id:guid}/members")]
+    [Authorize(Policy = "CanViewProject")]
+    [SwaggerOperation(Summary = "Lista os membros do projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel<IEnumerable<ProjectMemberResponseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMembers(Guid id)
     {
         var userId = User.GetUserId();
-
         var members = await _service.GetMembersAsync(id, userId);
 
-        return Ok(
-            ResultViewModel.Ok(
-                "Membros carregados com sucesso.",
-                members
-            )
-        );
+        return Ok(ResultViewModel<IEnumerable<ProjectMemberResponseDto>>.Ok(
+            "Membros carregados com sucesso.",
+            members
+        ));
     }
 
-    [Authorize]
-    [Authorize(Policy = "CanViewProject")]
+    // Invites
+
     [HttpGet("{id:guid}/invites")]
+    [Authorize(Policy = "CanViewProject")]
+    [SwaggerOperation(Summary = "Lista os convites do projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel<IEnumerable<ProjectInviteResponseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllProjectInvites(Guid id)
     {
         var userId = User.GetUserId();
+        var invites = await _service.GetAllProjectsInviteAsync(id, userId);
 
-        var invites = await _service.GetAllProjectsInviteAsync(
-            id,
-            userId
-        );
-
-        return Ok(
-            ResultViewModel<IEnumerable<ProjectInviteResponseDto>>.Ok(
-                "Convites carregados com sucesso.", 
-                invites
-                )
-            );
+        return Ok(ResultViewModel<IEnumerable<ProjectInviteResponseDto>>.Ok(
+            "Convites carregados com sucesso.",
+            invites
+        ));
     }
 
-    [Authorize]
-    [Authorize(Policy = "CanManageMembers")]
     [HttpPost("{id:guid}/invites")]
-    public async Task<IActionResult> InviteMember(
-        Guid id,
-        InviteProjectMemberDto dto)
+    [Authorize(Policy = "CanManageMembers")]
+    [SwaggerOperation(Summary = "Envia convite para participar do projeto.")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> InviteMember(Guid id, [FromBody] InviteProjectMemberDto dto)
     {
         var userId = User.GetUserId();
 
         await _service.InviteMemberAsync(
-            id,
-            userId,
-            dto.Email,
-            dto.Role
+            projectId: id,
+            executorUserId: userId,
+            email: dto.Email,
+            role: dto.Role
         );
 
         return Ok(ResultViewModel.Ok("Convite enviado com sucesso."));
     }
 
-    [AllowAnonymous]
+    // ✅ Agora autenticado (pois service precisa do executorUserId)
     [HttpPut("invites/{token}/accept")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Aceita um convite (requer autenticação).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> AcceptInvite(string token)
     {
         var userId = User.GetUserId();
-
         await _service.AcceptInviteAsync(token, userId);
 
         return Ok(ResultViewModel.Ok("Convite aceito com sucesso."));
     }
 
-    [AllowAnonymous]
     [HttpPut("invites/{token}/decline")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Recusa um convite (requer autenticação).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> DeclineInvite(string token)
     {
-        var userId = User.GetUserId();
-
-        await _service.DeclineInviteAsync(token, userId);
+        await _service.DeclineInviteAsync(token);
 
         return Ok(ResultViewModel.Ok("Convite recusado com sucesso."));
     }
 
-    [Authorize]
-    [Authorize(Policy = "CanManageMembers")]
     [HttpPut("invites/{token}/revoke")]
+    [Authorize(Policy = "CanManageMembers")]
+    [SwaggerOperation(Summary = "Revoga um convite (requer permissão).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> RevokeInvite(string token)
     {
-        var userId = User.GetUserId();
-
-        await _service.RevokeInviteAsync(token, userId);
+        await _service.RevokeInviteAsync(token);
 
         return Ok(ResultViewModel.Ok("Convite cancelado com sucesso."));
     }
-
-
 }
-
