@@ -12,8 +12,8 @@ using archFlowServer.Data;
 namespace ArchFlowServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260126232024_MakeUserStoryPositionDeferrable")]
-    partial class MakeUserStoryPositionDeferrable
+    [Migration("20260127234355_MakeEpicPositionUniqueDeferrable")]
+    partial class MakeEpicPositionUniqueDeferrable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,54 @@ namespace ArchFlowServer.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "uuid-ossp");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.Board", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BoardType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Kanban");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SprintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SprintId")
+                        .IsUnique();
+
+                    b.ToTable("boards", (string)null);
+                });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>
                 {
@@ -248,6 +296,103 @@ namespace ArchFlowServer.Migrations
                         });
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.Sprint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("CapacityHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsArchived")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Planned");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Active' AND \"IsArchived\" = false");
+
+                    b.ToTable("sprints", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Sprint_DateRange", "\"StartDate\" < \"EndDate\"");
+
+                            t.HasCheckConstraint("CK_Sprint_Status", "\"Status\" IN ('Planned','Active','Closed','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.SprintItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("SprintId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("UserStoryId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserStoryId");
+
+                    b.HasIndex("SprintId", "UserStoryId")
+                        .IsUnique();
+
+                    b.ToTable("sprint_items", (string)null);
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -395,6 +540,25 @@ namespace ArchFlowServer.Migrations
                         });
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.Board", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("archFlowServer.Models.Entities.Sprint", "Sprint")
+                        .WithOne("Board")
+                        .HasForeignKey("archFlowServer.Models.Entities.Board", "SprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Sprint");
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.ProductBacklog", "ProductBacklog")
@@ -445,6 +609,36 @@ namespace ArchFlowServer.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.Sprint", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.SprintItem", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.Sprint", "Sprint")
+                        .WithMany("Items")
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
+                        .WithMany()
+                        .HasForeignKey("UserStoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sprint");
+
+                    b.Navigation("UserStory");
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.UserStory", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.Epic", "Epic")
@@ -472,6 +666,14 @@ namespace ArchFlowServer.Migrations
 
                     b.Navigation("ProductBacklog")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.Sprint", b =>
+                {
+                    b.Navigation("Board")
+                        .IsRequired();
+
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

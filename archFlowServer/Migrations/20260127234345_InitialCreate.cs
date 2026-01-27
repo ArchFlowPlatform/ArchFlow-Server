@@ -96,6 +96,36 @@ namespace ArchFlowServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "sprints",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Goal = table.Column<string>(type: "text", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "date", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "date", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "Planned"),
+                    CapacityHours = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    IsArchived = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ArchivedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sprints", x => x.Id);
+                    table.CheckConstraint("CK_Sprint_DateRange", "\"StartDate\" < \"EndDate\"");
+                    table.CheckConstraint("CK_Sprint_Status", "\"Status\" IN ('Planned','Active','Closed','Cancelled')");
+                    table.ForeignKey(
+                        name: "FK_sprints_projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "project_members",
                 columns: table => new
                 {
@@ -157,6 +187,36 @@ namespace ArchFlowServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "boards",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SprintId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    BoardType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false, defaultValue: "Kanban"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_boards", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_boards_projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_boards_sprints_SprintId",
+                        column: x => x.SprintId,
+                        principalTable: "sprints",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "user_stories",
                 columns: table => new
                 {
@@ -193,6 +253,44 @@ namespace ArchFlowServer.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "sprint_items",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SprintId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserStoryId = table.Column<int>(type: "integer", nullable: false),
+                    AddedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sprint_items", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_sprint_items_sprints_SprintId",
+                        column: x => x.SprintId,
+                        principalTable: "sprints",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_sprint_items_user_stories_UserStoryId",
+                        column: x => x.UserStoryId,
+                        principalTable: "user_stories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_boards_ProjectId",
+                table: "boards",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_boards_SprintId",
+                table: "boards",
+                column: "SprintId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_epics_ProductBacklogId",
@@ -241,6 +339,24 @@ namespace ArchFlowServer.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_sprint_items_SprintId_UserStoryId",
+                table: "sprint_items",
+                columns: new[] { "SprintId", "UserStoryId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_sprint_items_UserStoryId",
+                table: "sprint_items",
+                column: "UserStoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_sprints_ProjectId",
+                table: "sprints",
+                column: "ProjectId",
+                unique: true,
+                filter: "\"Status\" = 'Active' AND \"IsArchived\" = false");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_stories_EpicId",
                 table: "user_stories",
                 column: "EpicId");
@@ -267,16 +383,25 @@ namespace ArchFlowServer.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "boards");
+
+            migrationBuilder.DropTable(
                 name: "project_invites");
 
             migrationBuilder.DropTable(
                 name: "project_members");
 
             migrationBuilder.DropTable(
-                name: "user_stories");
+                name: "sprint_items");
 
             migrationBuilder.DropTable(
                 name: "users");
+
+            migrationBuilder.DropTable(
+                name: "sprints");
+
+            migrationBuilder.DropTable(
+                name: "user_stories");
 
             migrationBuilder.DropTable(
                 name: "epics");

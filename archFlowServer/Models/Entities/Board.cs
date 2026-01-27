@@ -1,14 +1,15 @@
-﻿using archFlowServer.Models.Enums;
+﻿using archFlowServer.Models.Contracts;
+using archFlowServer.Models.Enums;
 using archFlowServer.Models.Exceptions;
 
 namespace archFlowServer.Models.Entities;
 
-public class Board
+public class Board : IAuditableEntity
 {
     public Guid Id { get; private set; }
 
     public Guid ProjectId { get; private set; }
-    public Guid SprintId { get; private set; } // <-- NOT NULL (1 board por sprint)
+    public Guid SprintId { get; private set; }
 
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
@@ -47,9 +48,6 @@ public class Board
         Name = name.Trim();
         Description = description?.Trim() ?? string.Empty;
         BoardType = boardType;
-
-        CreatedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Update(string name, string? description, BoardType boardType)
@@ -61,6 +59,10 @@ public class Board
         Description = description?.Trim() ?? string.Empty;
         BoardType = boardType;
 
-        UpdatedAt = DateTime.UtcNow;
+        // UpdatedAt é responsabilidade do interceptor
     }
+
+    // ===== IAuditableEntity =====
+    public void SetCreatedAt(DateTime utcNow) => CreatedAt = utcNow;
+    public void SetUpdatedAt(DateTime utcNow) => UpdatedAt = utcNow;
 }

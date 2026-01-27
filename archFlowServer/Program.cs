@@ -18,6 +18,7 @@ using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using archFlowServer.Data.Interceptors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,8 +144,16 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Host=localhost;Port=5432;Database=archflow_dev;Username=postgres;Password=root";
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
+builder.Services.AddScoped<AuditTimestampsInterceptor>();
+
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    var auditInterceptor = sp.GetRequiredService<AuditTimestampsInterceptor>();
+
+    options.UseNpgsql(connectionString);
+    options.AddInterceptors(auditInterceptor);
+});
+
 
 // ============================================================================
 // ðŸ§© DEPENDENCY INJECTION
