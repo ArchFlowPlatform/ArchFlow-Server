@@ -1,38 +1,16 @@
-﻿using Swashbuckle.AspNetCore.Annotations;
+﻿namespace archFlowServer.Models.Dtos.Sprint;
 
-namespace archFlowServer.Models.Dtos.Sprint;
-
-[SwaggerSchema(Description = "DTO retornado ao consultar um sprint.")]
-public class SprintResponseDto
-{
-    [SwaggerSchema("Identificador Ãºnico do sprint.")]
-    public Guid Id { get; set; }
-
-    [SwaggerSchema("ID do projeto associado.")]
-    public Guid ProjectId { get; set; }
-
-    [SwaggerSchema("Nome do sprint.")]
-    public string Name { get; set; } = string.Empty;
-
-    [SwaggerSchema("Meta do sprint.")]
-    public string Goal { get; set; } = string.Empty;
-
-    [SwaggerSchema("Status atual do sprint.")]
-    public string Status { get; set; } = string.Empty;
-
-    [SwaggerSchema("Capacidade total em horas.")]
-    public int CapacityHours { get; set; }
-
-    [SwaggerSchema("Data de inÃ­cio.")]
-    public DateTime StartDate { get; set; }
-
-    [SwaggerSchema("Data de tÃ©rmino.")]
-    public DateTime EndDate { get; set; }
-
-    [SwaggerSchema("Data de criaÃ§Ã£o do sprint.")]
-    public DateTime CreatedAt { get; set; }
-
-    [SwaggerSchema("Data da Ãºltima atualizaÃ§Ã£o.")]
-    public DateTime UpdatedAt { get; set; }
-}
-
+public sealed record SprintResponseDto(
+    Guid Id,
+    Guid ProjectId,
+    string Name,
+    string Goal,
+    DateTime StartDate,
+    DateTime EndDate,
+    SprintStatusDto Status,
+    int CapacityHours,
+    bool IsArchived,
+    DateTime? ArchivedAt,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);

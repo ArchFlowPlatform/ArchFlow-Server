@@ -51,7 +51,7 @@ public class UserService
             throw new ForbiddenException("não Ã© permitido criar um usuário administrador.");
 
         if (await _repository.EmailExistsAsync(dto.Email))
-            throw new ConflictException("JÃ¡ existe um usuário com este email.");
+            throw new ConflictException("Já existe um usuário com este email.");
 
         var user = new User(
             dto.Name,

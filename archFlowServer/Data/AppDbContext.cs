@@ -22,6 +22,9 @@ namespace archFlowServer.Data
         public DbSet<ProductBacklog> ProductBacklogs => Set<ProductBacklog>();
         public DbSet<Epic> Epics => Set<Epic>();
         public DbSet<UserStory> UserStories => Set<UserStory>();
+        public DbSet<Sprint> Sprints => Set<Sprint>();
+        public DbSet<Board> Boards => Set<Board>();
+        public DbSet<SprintItem> SprintItems => Set<SprintItem>();
 
 
 

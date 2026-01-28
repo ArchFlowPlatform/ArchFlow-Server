@@ -1,6 +1,6 @@
-﻿namespace archFlowServer.Models.Dtos.Sprint;
+namespace archFlowServer.Models.Dtos.Sprint;
 
-public class CreateSprintDto
+public class UpdateSprintDto
 {
     public string Name { get; set; } = string.Empty;
     public string? Goal { get; set; }

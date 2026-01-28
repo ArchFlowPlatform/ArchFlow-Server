@@ -90,7 +90,7 @@ public class GlobalExceptionMiddleware
         int statusCode,
         ResultViewModel result)
     {
-        // Se algo jÃ¡ escreveu no response, não tenta reescrever
+        // Se algo já escreveu no response, não tenta reescrever
         if (context.Response.HasStarted)
             return Task.CompletedTask;
 
