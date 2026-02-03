@@ -167,6 +167,8 @@ builder.Services.AddScoped<IEpicRepository, EpicRepository>();
 builder.Services.AddScoped<IUserStoryRepository,  UserStoryRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectInviteRepository, ProjectInviteRepository>();
+builder.Services.AddScoped<ISprintItemRepository, SprintItemRepository>();
+builder.Services.AddScoped<IBoardRepository, BoardRepository>();
 
 // Services
 builder.Services.AddScoped<UserService>();
@@ -178,6 +180,10 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ProjectAuthorizationService>();
 builder.Services.AddScoped<ProjectRoleAuthorizationFilter>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddScoped<SprintItemService>();
+builder.Services.AddScoped<BoardService>();
+
+
 
 
 builder.Services.AddControllers(options =>
