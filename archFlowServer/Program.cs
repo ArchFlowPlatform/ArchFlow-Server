@@ -169,6 +169,9 @@ builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IProjectInviteRepository, ProjectInviteRepository>();
 builder.Services.AddScoped<ISprintItemRepository, SprintItemRepository>();
 builder.Services.AddScoped<IBoardRepository, BoardRepository>();
+builder.Services.AddScoped<IStoryTaskRepository, StoryTaskRepository>();
+builder.Services.AddScoped<IBoardColumnRepository, BoardColumnRepository>();
+builder.Services.AddScoped<IBoardCardRepository, BoardCardRepository>();
 
 // Services
 builder.Services.AddScoped<UserService>();
@@ -182,6 +185,10 @@ builder.Services.AddScoped<ProjectRoleAuthorizationFilter>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 builder.Services.AddScoped<SprintItemService>();
 builder.Services.AddScoped<BoardService>();
+builder.Services.AddScoped<StoryTaskService>();
+builder.Services.AddScoped<BoardColumnService>();
+builder.Services.AddScoped<BoardCardService>();
+
 
 
 

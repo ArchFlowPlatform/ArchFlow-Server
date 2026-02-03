@@ -25,6 +25,10 @@ namespace archFlowServer.Data
         public DbSet<Sprint> Sprints => Set<Sprint>();
         public DbSet<Board> Boards => Set<Board>();
         public DbSet<SprintItem> SprintItems => Set<SprintItem>();
+        public DbSet<StoryTask> StoryTasks => Set<StoryTask>();
+        public DbSet<BoardColumn> BoardColumns => Set<BoardColumn>();
+        public DbSet<BoardCard> BoardCards => Set<BoardCard>();
+
 
 
 
@@ -481,6 +485,127 @@ namespace archFlowServer.Data
                 entity.Navigation(s => s.Items).HasField("_items");
             });
 
+            modelBuilder.Entity<StoryTask>(entity =>
+            {
+                entity.ToTable("story_tasks");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(e => e.UserStoryId).IsRequired();
+
+                entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Description).HasColumnType("text").IsRequired();
+
+                entity.Property(e => e.AssigneeId);
+
+                entity.Property(e => e.EstimatedHours);
+                entity.Property(e => e.ActualHours);
+
+                entity.Property(e => e.Priority).HasDefaultValue(0).IsRequired();
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
+
+                entity.HasOne(e => e.UserStory)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserStoryId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<BoardColumn>(entity =>
+            {
+                entity.ToTable("board_columns");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(e => e.BoardId).IsRequired();
+
+                entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Description).HasColumnType("text").IsRequired();
+
+                entity.Property(e => e.Position).IsRequired();
+                entity.Property(e => e.WipLimit);
+
+                entity.Property(e => e.Color).HasMaxLength(7).HasDefaultValue("#95a5a6").IsRequired();
+                entity.Property(e => e.IsDoneColumn).HasDefaultValue(false).IsRequired();
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
+
+                entity.HasOne(e => e.Board)
+                    .WithMany()
+                    .HasForeignKey(e => e.BoardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.BoardId, e.Position }).IsUnique();
+            });
+
+            modelBuilder.Entity<BoardCard>(entity =>
+            {
+                entity.ToTable("board_cards");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(e => e.ColumnId).IsRequired();
+
+                entity.Property(e => e.UserStoryId).IsRequired(false);
+                entity.Property(e => e.StoryTaskId).IsRequired(false);
+
+                entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.Description).HasColumnType("text").IsRequired();
+
+                entity.Property(e => e.AssigneeId);
+
+                entity.Property(e => e.Position).IsRequired();
+
+                entity.Property(e => e.Priority)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(e => e.DueDate).IsRequired(false);
+
+                entity.Property(e => e.EstimatedHours);
+                entity.Property(e => e.ActualHours);
+
+                entity.Property(e => e.Color).HasMaxLength(7).HasDefaultValue("#ffffff").IsRequired();
+
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
+
+                entity.HasOne(e => e.Column)
+                    .WithMany(c => c.Cards)
+                    .HasForeignKey(e => e.ColumnId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.UserStory)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserStoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.StoryTask)
+                    .WithMany()
+                    .HasForeignKey(e => e.StoryTaskId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.ColumnId, e.Position }).IsUnique();
+
+                // XOR: exatamente 1 origem
+                entity.HasCheckConstraint(
+                    "CK_BoardCard_Origin",
+                    @"(""UserStoryId"" IS NOT NULL AND ""StoryTaskId"" IS NULL)
+          OR (""UserStoryId"" IS NULL AND ""StoryTaskId"" IS NOT NULL)"
+                );
+            });
         }
     }
 }

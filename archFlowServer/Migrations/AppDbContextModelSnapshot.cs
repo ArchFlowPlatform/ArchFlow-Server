@@ -71,6 +71,140 @@ namespace ArchFlowServer.Migrations
                     b.ToTable("boards", (string)null);
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.BoardCard", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActualHours")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasDefaultValue("#ffffff");
+
+                    b.Property<int>("ColumnId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("EstimatedHours")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int?>("StoryTaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int?>("UserStoryId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoryTaskId");
+
+                    b.HasIndex("UserStoryId");
+
+                    b.HasIndex("ColumnId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("board_cards", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BoardCard_Origin", "(\"UserStoryId\" IS NOT NULL AND \"StoryTaskId\" IS NULL)\r\n          OR (\"UserStoryId\" IS NULL AND \"StoryTaskId\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.BoardColumn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("BoardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasDefaultValue("#95a5a6");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDoneColumn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int?>("WipLimit")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BoardId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("board_columns", (string)null);
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>
                 {
                     b.Property<int>("Id")
@@ -400,6 +534,57 @@ namespace ArchFlowServer.Migrations
                     b.ToTable("sprint_items", (string)null);
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.StoryTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ActualHours")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("EstimatedHours")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("UserStoryId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserStoryId");
+
+                    b.ToTable("story_tasks", (string)null);
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -566,6 +751,42 @@ namespace ArchFlowServer.Migrations
                     b.Navigation("Sprint");
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.BoardCard", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.BoardColumn", "Column")
+                        .WithMany("Cards")
+                        .HasForeignKey("ColumnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("archFlowServer.Models.Entities.StoryTask", "StoryTask")
+                        .WithMany()
+                        .HasForeignKey("StoryTaskId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
+                        .WithMany()
+                        .HasForeignKey("UserStoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Column");
+
+                    b.Navigation("StoryTask");
+
+                    b.Navigation("UserStory");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.BoardColumn", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.Board", "Board")
+                        .WithMany()
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.ProductBacklog", "ProductBacklog")
@@ -646,6 +867,17 @@ namespace ArchFlowServer.Migrations
                     b.Navigation("UserStory");
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.StoryTask", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
+                        .WithMany()
+                        .HasForeignKey("UserStoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UserStory");
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.UserStory", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.Epic", "Epic")
@@ -655,6 +887,11 @@ namespace ArchFlowServer.Migrations
                         .IsRequired();
 
                     b.Navigation("Epic");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.BoardColumn", b =>
+                {
+                    b.Navigation("Cards");
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>

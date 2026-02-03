@@ -9,6 +9,7 @@ public interface IUserStoryRepository
     Task<UserStory?> GetByIdWithEpicAsync(int storyId);
     Task<UserStory?> GetByIdWithEpicIncludingArchivedAsync(int id);
     Task<List<UserStory>> GetByEpicIdAsync(int epicId);
+    Task<UserStory?> GetByIdWithEpicAndBacklogAsync(int storyId);
     Task<int> GetNextPositionAsync(int epicId);
     Task ShiftPositionsAsync(int epicId, int fromPosition, int toPosition);
     Task<int> GetMaxPositionAsync(int epicId);

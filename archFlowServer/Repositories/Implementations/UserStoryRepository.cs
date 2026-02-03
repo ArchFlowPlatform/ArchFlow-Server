@@ -38,7 +38,15 @@ public class UserStoryRepository : IUserStoryRepository
             .OrderBy(s => s.Position)
             .ToListAsync();
     }
-    
+
+    public async Task<UserStory?> GetByIdWithEpicAndBacklogAsync(int storyId)
+    {
+        return await _context.UserStories
+            .Include(s => s.Epic)
+            .ThenInclude(e => e.ProductBacklog)
+            .FirstOrDefaultAsync(s => s.Id == storyId && !s.IsArchived);
+    }
+
     public async Task<int> GetNextPositionAsync(int epicId)
     {
         var max = await _context.UserStories
