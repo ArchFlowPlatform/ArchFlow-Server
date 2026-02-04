@@ -97,7 +97,7 @@ public class StoryTaskService
 
     private async Task<UserStory> EnsureUserStoryInProjectAsync(Guid projectId, int storyId)
     {
-        var story = await _userStoryRepository.GetByIdWithEpicAsync(storyId)
+        var story = await _userStoryRepository.GetByIdWithEpicAndBacklogAsync(storyId)
             ?? throw new NotFoundException("User story não encontrada.");
 
         // aqui depende do seu modelo:
