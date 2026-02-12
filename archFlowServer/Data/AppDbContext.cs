@@ -28,6 +28,10 @@ namespace archFlowServer.Data
         public DbSet<StoryTask> StoryTasks => Set<StoryTask>();
         public DbSet<BoardColumn> BoardColumns => Set<BoardColumn>();
         public DbSet<BoardCard> BoardCards => Set<BoardCard>();
+        public DbSet<Label> Labels => Set<Label>();
+        public DbSet<CardLabel> CardLabels => Set<CardLabel>();
+        public DbSet<CardAttachment> CardAttachments => Set<CardAttachment>();
+
 
 
 
@@ -605,6 +609,111 @@ namespace archFlowServer.Data
                     @"(""UserStoryId"" IS NOT NULL AND ""StoryTaskId"" IS NULL)
           OR (""UserStoryId"" IS NULL AND ""StoryTaskId"" IS NOT NULL)"
                 );
+            });
+            
+            modelBuilder.Entity<Label>(entity =>
+            {
+                entity.ToTable("labels");
+                entity.HasKey(l => l.Id);
+
+                entity.Property(l => l.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(l => l.ProjectId).IsRequired();
+
+                entity.Property(l => l.Name)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(l => l.Color)
+                    .HasMaxLength(7)
+                    .IsRequired();
+
+                entity.Property(l => l.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.Property(l => l.UpdatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasOne(l => l.Project)
+                    .WithMany()
+                    .HasForeignKey(l => l.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(l => new { l.ProjectId, l.Name })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<CardLabel>(entity =>
+            {
+                entity.ToTable("card_labels");
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(x => x.CardId).IsRequired();
+                entity.Property(x => x.LabelId).IsRequired();
+
+                entity.Property(x => x.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasOne(x => x.Card)
+                    .WithMany()
+                    .HasForeignKey(x => x.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.Label)
+                    .WithMany()
+                    .HasForeignKey(x => x.LabelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(x => new { x.CardId, x.LabelId })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<CardAttachment>(entity =>
+            {
+                entity.ToTable("card_attachments");
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(a => a.CardId).IsRequired();
+
+                entity.Property(a => a.FileName)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.Property(a => a.FilePath)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(a => a.FileSize);
+
+                entity.Property(a => a.MimeType)
+                    .HasMaxLength(100);
+
+                entity.Property(a => a.UploadedBy)
+                    .IsRequired();
+
+                entity.Property(a => a.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasOne(a => a.Card)
+                    .WithMany()
+                    .HasForeignKey(a => a.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(a => a.CardId);
             });
         }
     }
