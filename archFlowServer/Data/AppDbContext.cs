@@ -31,6 +31,9 @@ namespace archFlowServer.Data
         public DbSet<Label> Labels => Set<Label>();
         public DbSet<CardLabel> CardLabels => Set<CardLabel>();
         public DbSet<CardAttachment> CardAttachments => Set<CardAttachment>();
+        public DbSet<CardComment> CardComments => Set<CardComment>();
+        public DbSet<CardActivity> CardActivities => Set<CardActivity>();
+
 
 
 
@@ -714,6 +717,82 @@ namespace archFlowServer.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(a => a.CardId);
+            });
+            
+            modelBuilder.Entity<CardComment>(entity =>
+            {
+                entity.ToTable("card_comments");
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(c => c.CardId).IsRequired();
+                entity.Property(c => c.UserId).IsRequired();
+
+                entity.Property(c => c.Content)
+                    .HasColumnType("text")
+                    .IsRequired();
+
+                entity.Property(c => c.ParentCommentId).IsRequired(false);
+
+                entity.Property(c => c.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
+                entity.Property(c => c.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
+
+                entity.HasOne(c => c.Card)
+                    .WithMany()
+                    .HasForeignKey(c => c.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(c => c.ParentComment)
+                    .WithMany(c => (IEnumerable<CardComment>)c.Replies)
+                    .HasForeignKey(c => c.ParentCommentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(c => c.CardId);
+                entity.HasIndex(c => c.ParentCommentId);
+            });
+
+            modelBuilder.Entity<CardActivity>(entity =>
+            {
+                entity.ToTable("card_activities");
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.Id)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityByDefaultColumn();
+
+                entity.Property(a => a.CardId).IsRequired();
+                entity.Property(a => a.UserId).IsRequired();
+
+                entity.Property(a => a.ActivityType)
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(a => a.OldValue)
+                    .HasColumnType("jsonb")
+                    .IsRequired(false);
+
+                entity.Property(a => a.NewValue)
+                    .HasColumnType("jsonb")
+                    .IsRequired(false);
+
+                entity.Property(a => a.Description)
+                    .HasColumnType("text");
+
+                entity.Property(a => a.CreatedAt)
+                    .HasDefaultValueSql("NOW()")
+                    .IsRequired();
+
+                entity.HasOne(a => a.Card)
+                    .WithMany()
+                    .HasForeignKey(a => a.CardId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(a => a.CardId);
+                entity.HasIndex(a => new { a.CardId, a.CreatedAt });
             });
         }
     }

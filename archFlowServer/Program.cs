@@ -175,6 +175,8 @@ builder.Services.AddScoped<IBoardCardRepository, BoardCardRepository>();
 builder.Services.AddScoped<ILabelRepository, LabelRepository>();
 builder.Services.AddScoped<ICardLabelRepository, CardLabelRepository>();
 builder.Services.AddScoped<ICardAttachmentRepository, CardAttachmentRepository>();
+builder.Services.AddScoped<ICardCommentRepository, CardCommentRepository>();
+builder.Services.AddScoped<ICardActivityRepository, CardActivityRepository>();
 
 // Services
 builder.Services.AddScoped<UserService>();
@@ -194,6 +196,9 @@ builder.Services.AddScoped<BoardCardService>();
 builder.Services.AddScoped<LabelService>();
 builder.Services.AddScoped<CardLabelService>();
 builder.Services.AddScoped<CardAttachmentService>();
+builder.Services.AddScoped<CardCommentService>();
+builder.Services.AddScoped<CardActivityService>();
+
 
 
 
