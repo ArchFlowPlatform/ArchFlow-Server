@@ -1,4 +1,5 @@
 ﻿using archFlowServer.Models.Entities;
+using ArchFlowServer.Models.Dtos.Project;
 
 namespace archFlowServer.Repositories.Interfaces
 {
@@ -11,6 +12,7 @@ namespace archFlowServer.Repositories.Interfaces
 
         // Opcional: se você precisar buscar independente de status
         Task<Project?> GetByIdAsync(Guid projectId);
+        Task<IReadOnlyList<ProjectListDto>> GetWithDetailsAllActiveAsync();
 
         // Persistência
         Task AddAsync(Project project);

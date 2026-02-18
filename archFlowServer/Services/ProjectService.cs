@@ -248,14 +248,30 @@ public class ProjectService
 
     private static ProjectResponseDto MapToDto(Project project)
     {
+        var ownerName = project.Members
+            .FirstOrDefault(m => m.UserId == project.OwnerId)?
+            .User?.Name ?? string.Empty;
+
         return new ProjectResponseDto
         {
             Id = project.Id,
             Name = project.Name,
             Description = project.Description,
             OwnerId = project.OwnerId,
+            OwnerName = ownerName,
             Status = project.Status,
-            CreatedAt = project.CreatedAt
+            CreatedAt = project.CreatedAt,
+
+            Members = project.Members
+                .Select(pm => new ProjectMemberResponseDto
+                {
+                    UserId = pm.UserId,
+                    Name = pm.User?.Name ?? string.Empty,
+                    Email = pm.User?.Email ?? string.Empty,
+                    Role = pm.Role,
+                    JoinedAt = pm.JoinedAt
+                })
+                .ToList()
         };
     }
 

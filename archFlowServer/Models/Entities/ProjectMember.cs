@@ -1,5 +1,6 @@
 ﻿using archFlowServer.Models.Enums;
 using archFlowServer.Models.Exceptions;
+using System.Text.Json.Serialization;
 
 namespace archFlowServer.Models.Entities;
 
@@ -12,7 +13,9 @@ public class ProjectMember
 
     public MemberRole Role { get; private set; }
     public DateTime JoinedAt { get; private set; }
+
     public Project Project { get; private set; } = null!;
+
     public User User { get; private set; } = null!;
     private ProjectMember() { }
 

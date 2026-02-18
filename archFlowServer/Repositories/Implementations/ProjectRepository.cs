@@ -3,6 +3,7 @@ using archFlowServer.Models.Entities;
 using archFlowServer.Models.Enums;
 using archFlowServer.Models.Exceptions;
 using archFlowServer.Repositories.Interfaces;
+using ArchFlowServer.Models.Dtos.Project;
 using Microsoft.EntityFrameworkCore;
 
 namespace archFlowServer.Repositories.Implementations;
@@ -19,9 +20,10 @@ public class ProjectRepository : IProjectRepository
     public async Task<IReadOnlyList<Project>> GetAllActiveAsync()
     {
         return await _context.Projects
-            .Include(p => p.Members)
-            .Where(p => p.Status == ProjectStatus.Active)
-            .ToListAsync();
+        .Include(p => p.Members)
+            .ThenInclude(pm => pm.User)
+        .Where(p => p.Status == ProjectStatus.Active)
+        .ToListAsync();
     }
 
     public async Task<Project?> GetArchivedByIdAsync(Guid projectId)
@@ -52,8 +54,29 @@ public class ProjectRepository : IProjectRepository
                 p.Status == ProjectStatus.Active
             );
     }
-    
-    
+
+    public async Task<IReadOnlyList<ProjectListDto>> GetWithDetailsAllActiveAsync()
+    {
+        return await _context.Projects
+            .Where(p => p.Status == ProjectStatus.Active)
+            .Select(p => new ProjectListDto(
+                p.Id,
+                p.Name,
+                p.Description,
+                p.Status,
+                p.CreatedAt,
+                p.Members.Select(m => new ProjectUserDto(
+                        m.UserId,
+                        m.User.Name,
+                        m.User.Email,
+                        m.User.AvatarUrl,
+                        m.Role,
+                        m.JoinedAt
+                    )).ToList()
+            ))
+            .ToListAsync();
+    }
+
 
     public async Task AddAsync(Project project)
     {
