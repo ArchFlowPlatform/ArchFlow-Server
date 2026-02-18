@@ -55,29 +55,6 @@ public class ProjectRepository : IProjectRepository
             );
     }
 
-    public async Task<IReadOnlyList<ProjectListDto>> GetWithDetailsAllActiveAsync()
-    {
-        return await _context.Projects
-            .Where(p => p.Status == ProjectStatus.Active)
-            .Select(p => new ProjectListDto(
-                p.Id,
-                p.Name,
-                p.Description,
-                p.Status,
-                p.CreatedAt,
-                p.Members.Select(m => new ProjectUserDto(
-                        m.UserId,
-                        m.User.Name,
-                        m.User.Email,
-                        m.User.AvatarUrl,
-                        m.Role,
-                        m.JoinedAt
-                    )).ToList()
-            ))
-            .ToListAsync();
-    }
-
-
     public async Task AddAsync(Project project)
     {
         await _context.Projects.AddAsync(project);
