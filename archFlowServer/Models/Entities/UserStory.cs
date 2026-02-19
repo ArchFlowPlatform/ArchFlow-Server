@@ -18,21 +18,29 @@ public class UserStory
     public int? Effort { get; private set; }
     public string Dependencies { get; private set; } = string.Empty;
 
+    // ✅ prioridade do item (decisão de produto)
     public int Priority { get; private set; } = 0;
+
     public BusinessValue BusinessValue { get; private set; } = BusinessValue.Medium;
     public UserStoryStatus Status { get; private set; } = UserStoryStatus.Draft;
 
-    public int Position { get; private set; } // âœ… sem set pÃºblico
+    // ✅ ordem no backlog (ranking / reorder do backlog)
+    public int BacklogPosition { get; private set; }
 
     public Guid? AssigneeId { get; private set; }
-    
+
     public bool IsArchived { get; private set; }
     public DateTime? ArchivedAt { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
+    // navigations
     public Epic Epic { get; private set; } = null!;
+    public ICollection<StoryTask> Tasks { get; private set; } = new List<StoryTask>();
+
+    // ✅ se quiser rastrear em quantos boards ela está (opcional)
+    public ICollection<BoardCard> BoardCards { get; private set; } = new List<BoardCard>();
 
     private UserStory() { } // EF
 
@@ -48,25 +56,14 @@ public class UserStory
         int priority,
         BusinessValue businessValue,
         UserStoryStatus status,
-        int position,
-        Guid? assigneeId,
-        bool isArchived,
-        DateTime? archivedAt)
+        int backlogPosition,
+        Guid? assigneeId)
     {
-        if (epicId <= 0)
-            throw new DomainException("EpicId inválido.");
-
-        if (string.IsNullOrWhiteSpace(title))
-            throw new ValidationException("TÃ­tulo Ã© obrigatÃ³rio.");
-
-        if (string.IsNullOrWhiteSpace(persona))
-            throw new ValidationException("Persona Ã© obrigatÃ³ria.");
-
-        if (string.IsNullOrWhiteSpace(description))
-            throw new ValidationException("DescriÃ§Ã£o Ã© obrigatÃ³ria.");
-
-        if (position < 0)
-            throw new ValidationException("Position invÃ¡lida.");
+        if (epicId <= 0) throw new DomainException("EpicId inválido.");
+        if (string.IsNullOrWhiteSpace(title)) throw new ValidationException("Título é obrigatório.");
+        if (string.IsNullOrWhiteSpace(persona)) throw new ValidationException("Persona é obrigatória.");
+        if (string.IsNullOrWhiteSpace(description)) throw new ValidationException("Descrição é obrigatória.");
+        if (backlogPosition < 0) throw new ValidationException("BacklogPosition inválida.");
 
         EpicId = epicId;
 
@@ -84,12 +81,11 @@ public class UserStory
         BusinessValue = businessValue;
         Status = status;
 
-        Position = position;
+        BacklogPosition = backlogPosition;
         AssigneeId = assigneeId;
-        
-        IsArchived = isArchived;
-        ArchivedAt = archivedAt;
-        
+        IsArchived = false;
+        ArchivedAt = null;
+
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -105,20 +101,13 @@ public class UserStory
         int priority,
         BusinessValue businessValue,
         UserStoryStatus status,
-        int position,
+        int backlogPosition,
         Guid? assigneeId)
     {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new ValidationException("TÃ­tulo Ã© obrigatÃ³rio.");
-
-        if (string.IsNullOrWhiteSpace(persona))
-            throw new ValidationException("Persona Ã© obrigatÃ³ria.");
-
-        if (string.IsNullOrWhiteSpace(description))
-            throw new ValidationException("DescriÃ§Ã£o Ã© obrigatÃ³ria.");
-
-        if (position < 0)
-            throw new ValidationException("Position invÃ¡lida.");
+        if (string.IsNullOrWhiteSpace(title)) throw new ValidationException("Título é obrigatório.");
+        if (string.IsNullOrWhiteSpace(persona)) throw new ValidationException("Persona é obrigatória.");
+        if (string.IsNullOrWhiteSpace(description)) throw new ValidationException("Descrição é obrigatória.");
+        if (backlogPosition < 0) throw new ValidationException("BacklogPosition inválida.");
 
         Title = title.Trim();
         Persona = persona.Trim();
@@ -134,12 +123,12 @@ public class UserStory
         BusinessValue = businessValue;
         Status = status;
 
-        Position = position;
+        BacklogPosition = backlogPosition;
         AssigneeId = assigneeId;
 
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
     public void Archive()
     {
         if (IsArchived) return;
@@ -156,4 +145,3 @@ public class UserStory
         UpdatedAt = DateTime.UtcNow;
     }
 }
-

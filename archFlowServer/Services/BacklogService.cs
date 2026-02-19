@@ -73,7 +73,7 @@ public class BacklogService
         if (epic.ProductBacklogId != backlog.Id)
             throw new UnauthorizedAccessException("Este épico não pertence ao projeto informado.");
 
-        var nextPosition = await _storyRepository.GetNextPositionAsync(epicId);
+        var nextBacklogPosition = await _storyRepository.GetNextBacklogPositionAsync(epicId);
 
         var story = new UserStory(
             epicId: epicId,
@@ -87,10 +87,8 @@ public class BacklogService
             priority: dto.Priority,
             businessValue: dto.BusinessValue,
             status: dto.Status,
-            position: nextPosition,
-            assigneeId: dto.AssigneeId,
-            isArchived: dto.IsArchived,
-            archivedAt: null
+            backlogPosition: nextBacklogPosition, // ✅
+            assigneeId: dto.AssigneeId
         );
 
         await _storyRepository.AddAsync(story);
@@ -113,10 +111,6 @@ public class BacklogService
         {
             Id = backlog.Id,
             ProjectId = backlog.ProjectId,
-            Overview = backlog.Overview,
-            CreatedAt = backlog.CreatedAt,
-            UpdatedAt = backlog.UpdatedAt,
-
             Epics = backlog.Epics
                 .OrderBy(e => e.Position)
                 .ThenByDescending(e => e.Priority)
@@ -136,7 +130,7 @@ public class BacklogService
                     UpdatedAt = e.UpdatedAt,
 
                     UserStories = e.UserStories
-                        .OrderBy(s => s.Position)
+                        .OrderBy(s => s.BacklogPosition) // ✅
                         .ThenByDescending(s => s.Priority)
                         .ThenBy(s => s.CreatedAt)
                         .Select(s => new UserStoryResponseDto
@@ -149,7 +143,7 @@ public class BacklogService
                             AcceptanceCriteria = s.AcceptanceCriteria,
                             Complexity = s.Complexity,
                             Effort = s.Effort,
-                            Position = s.Position,
+                            BacklogPosition = s.BacklogPosition, // ✅
                             Dependencies = s.Dependencies,
                             Priority = s.Priority,
                             BusinessValue = s.BusinessValue,
@@ -233,7 +227,7 @@ public class BacklogService
             priority: dto.Priority ?? story.Priority,
             businessValue: dto.BusinessValue ?? story.BusinessValue,
             status: dto.Status ?? story.Status,
-            position: dto.Position ?? story.Position,
+            backlogPosition: dto.BacklogPosition ?? story.BacklogPosition, // ✅
             assigneeId: dto.AssigneeId ?? story.AssigneeId
         );
 
@@ -241,7 +235,7 @@ public class BacklogService
     }
 
     // ================================
-    // Reorder / Move
+    // Reorder / Move (BACKLOG)
     // ================================
 
     public async Task ReorderEpicAsync(Guid projectId, ReorderEpicDto dto)
@@ -297,9 +291,9 @@ public class BacklogService
             throw new ValidationException("ToPosition inválido.");
 
         var epicId = story.EpicId;
-        var from = story.Position;
+        var from = story.BacklogPosition; // ✅
 
-        var maxPos = await _storyRepository.GetMaxPositionAsync(epicId);
+        var maxPos = await _storyRepository.GetMaxBacklogPositionAsync(epicId);
         var to = dto.ToPosition > maxPos ? maxPos : dto.ToPosition;
 
         if (from == to) return;
@@ -308,9 +302,9 @@ public class BacklogService
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
-        await _storyRepository.SetPositionAsync(story.Id, temp);
-        await _storyRepository.ShiftPositionsAsync(epicId, from, to);
-        await _storyRepository.SetPositionAsync(story.Id, to);
+        await _storyRepository.SetBacklogPositionAsync(story.Id, temp);
+        await _storyRepository.ShiftBacklogPositionsAsync(epicId, from, to);
+        await _storyRepository.SetBacklogPositionAsync(story.Id, to);
 
         await tx.CommitAsync();
     }
@@ -339,9 +333,10 @@ public class BacklogService
             throw new UnauthorizedAccessException("O épico de destino não pertence ao projeto informado.");
 
         var fromEpicId = story.EpicId;
-        var fromPosition = story.Position;
+        var fromPosition = story.BacklogPosition; // ✅
         var toEpicId = toEpic.Id;
 
+        // mesmo epic -> reorder
         if (fromEpicId == toEpicId)
         {
             await ReorderUserStoryAsync(projectId, new ReorderUserStoryDto
@@ -352,19 +347,27 @@ public class BacklogService
             return;
         }
 
-        var maxDest = await _storyRepository.GetMaxPositionAsync(toEpicId);
+        // destino pode inserir no final também:
+        var maxDest = await _storyRepository.GetMaxBacklogPositionAsync(toEpicId);
         var destCount = maxDest + 1;
         var toPosition = dto.ToPosition > destCount ? destCount : dto.ToPosition;
 
-        var maxFrom = await _storyRepository.GetMaxPositionAsync(fromEpicId);
+        var maxFrom = await _storyRepository.GetMaxBacklogPositionAsync(fromEpicId);
         var temp = maxFrom + 1;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
-        await _storyRepository.SetPositionAsync(story.Id, temp);
-        await _storyRepository.DecrementPositionsAfterAsync(fromEpicId, fromPosition);
-        await _storyRepository.IncrementPositionsFromAsync(toEpicId, toPosition);
-        await _storyRepository.SetEpicAndPositionAsync(story.Id, toEpicId, toPosition);
+        // tira da posição original sem quebrar unique index (EpicId, BacklogPosition)
+        await _storyRepository.SetBacklogPositionAsync(story.Id, temp);
+
+        // fecha buraco no epic origem
+        await _storyRepository.DecrementBacklogPositionsAfterAsync(fromEpicId, fromPosition);
+
+        // abre espaço no epic destino
+        await _storyRepository.IncrementBacklogPositionsFromAsync(toEpicId, toPosition);
+
+        // move epic + backlogPosition final
+        await _storyRepository.SetEpicAndBacklogPositionAsync(story.Id, toEpicId, toPosition);
 
         await tx.CommitAsync();
     }
@@ -432,6 +435,7 @@ public class BacklogService
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
 
         await _storyRepository.ArchiveAsync(storyId);
+        await _storyRepository.SaveChangesAsync(); // ✅ faltava
     }
 
     public async Task RestoreUserStoryAsync(Guid projectId, int storyId)
@@ -449,5 +453,6 @@ public class BacklogService
             throw new UnauthorizedAccessException("Esta user story não pertence ao projeto informado.");
 
         await _storyRepository.RestoreAsync(storyId);
+        await _storyRepository.SaveChangesAsync(); // ✅ faltava
     }
 }

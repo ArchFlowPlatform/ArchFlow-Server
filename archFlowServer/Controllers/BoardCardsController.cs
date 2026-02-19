@@ -1,6 +1,7 @@
 ﻿using archFlowServer.Models.Dtos.Board.Cards;
 using archFlowServer.Models.ViewModels;
 using archFlowServer.Services;
+using ArchFlowServer.Models.Dtos.Board.Cards;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,8 +22,9 @@ public class BoardCardsController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = "CanViewProject")]
-    [SwaggerOperation(Summary = "Lista cards da coluna.")]
-    public async Task<IActionResult> GetAll(Guid projectId, Guid sprintId, int columnId)
+    [SwaggerOperation(Summary = "Lista cards da coluna (ordenados por position).")]
+    [ProducesResponseType(typeof(ResultViewModel<IEnumerable<BoardCardResponseDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromRoute] Guid projectId, [FromRoute] Guid sprintId, [FromRoute] int columnId)
     {
         var cards = await _service.GetAllByColumnAsync(projectId, sprintId, columnId);
         return Ok(ResultViewModel<IEnumerable<BoardCardResponseDto>>.Ok("Cards encontrados com sucesso.", cards));
@@ -30,35 +32,67 @@ public class BoardCardsController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = "CanViewProject")]
-    [SwaggerOperation(Summary = "Cria card na coluna.")]
-    public async Task<IActionResult> Create(Guid projectId, Guid sprintId, int columnId, [FromBody] CreateBoardCardDto dto)
+    [SwaggerOperation(Summary = "Cria card na coluna (representa uma UserStory).")]
+    [ProducesResponseType(typeof(ResultViewModel<BoardCardResponseDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Create(
+        [FromRoute] Guid projectId,
+        [FromRoute] Guid sprintId,
+        [FromRoute] int columnId,
+        [FromBody] CreateBoardCardDto dto)
     {
         var created = await _service.CreateAsync(projectId, sprintId, columnId, dto);
-        return Ok(ResultViewModel<BoardCardResponseDto>.Ok("Card criado com sucesso.", created));
+
+        return CreatedAtAction(
+            nameof(GetAll),
+            new { projectId, sprintId, columnId },
+            ResultViewModel<BoardCardResponseDto>.Ok("Card criado com sucesso.", created)
+        );
     }
 
-    [HttpPut("{cardId:int}")]
+    // reorder dentro da coluna (drag)
+    [HttpPatch("{cardId:int}/reorder")]
     [Authorize(Policy = "CanViewProject")]
-    [SwaggerOperation(Summary = "Atualiza card.")]
-    public async Task<IActionResult> Update(Guid projectId, Guid sprintId, int columnId, int cardId, [FromBody] UpdateBoardCardDto dto)
+    [SwaggerOperation(Summary = "Reordena card dentro da mesma coluna (drag).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Reorder(
+        [FromRoute] Guid projectId,
+        [FromRoute] Guid sprintId,
+        [FromRoute] int columnId,
+        [FromRoute] int cardId,
+        [FromBody] ReorderBoardCardDto dto)
     {
-        var updated = await _service.UpdateAsync(projectId, sprintId, cardId, dto);
-        return Ok(ResultViewModel<BoardCardResponseDto>.Ok("Card atualizado com sucesso.", updated));
+        dto.CardId = cardId;
+
+        await _service.ReorderAsync(projectId, sprintId, columnId, dto);
+        return Ok(ResultViewModel.Ok("Card reordenado com sucesso."));
     }
 
-    [HttpPost("{cardId:int}/move")]
+    // move entre colunas (drag)
+    [HttpPatch("{cardId:int}/move")]
     [Authorize(Policy = "CanViewProject")]
-    [SwaggerOperation(Summary = "Move card entre colunas.")]
-    public async Task<IActionResult> Move(Guid projectId, Guid sprintId, int columnId, int cardId, [FromBody] MoveBoardCardDto dto)
+    [SwaggerOperation(Summary = "Move card para outra coluna (drag).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Move(
+        [FromRoute] Guid projectId,
+        [FromRoute] Guid sprintId,
+        [FromRoute] int columnId,
+        [FromRoute] int cardId,
+        [FromBody] MoveBoardCardDto dto)
     {
+        // columnId na rota é a coluna atual "do contexto UI", mas a fonte real é o próprio card.
         await _service.MoveAsync(projectId, sprintId, cardId, dto);
         return Ok(ResultViewModel.Ok("Card movido com sucesso."));
     }
 
     [HttpDelete("{cardId:int}")]
     [Authorize(Policy = "CanViewProject")]
-    [SwaggerOperation(Summary = "Remove card.")]
-    public async Task<IActionResult> Delete(Guid projectId, Guid sprintId, int columnId, int cardId)
+    [SwaggerOperation(Summary = "Remove card (reindexa positions da coluna).")]
+    [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(
+        [FromRoute] Guid projectId,
+        [FromRoute] Guid sprintId,
+        [FromRoute] int columnId,
+        [FromRoute] int cardId)
     {
         await _service.DeleteAsync(projectId, sprintId, cardId);
         return Ok(ResultViewModel.Ok("Card removido com sucesso."));

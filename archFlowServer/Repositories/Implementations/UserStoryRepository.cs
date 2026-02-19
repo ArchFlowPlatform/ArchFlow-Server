@@ -14,164 +14,137 @@ public class UserStoryRepository : IUserStoryRepository
         _context = context;
     }
 
-    public async Task<UserStory?> GetByIdAsync(int storyId)
-        => await _context.UserStories.FirstOrDefaultAsync(s => s.Id == storyId && !s.IsArchived);
+    public Task<UserStory?> GetByIdAsync(int storyId)
+        => _context.UserStories.FirstOrDefaultAsync(s => s.Id == storyId && !s.IsArchived);
 
-    public async Task AddAsync(UserStory story)
-        => await _context.UserStories.AddAsync(story);
-    
-    public async Task<UserStory?> GetByIdWithEpicAsync(int storyId)
-    {
-        return await _context.UserStories
+    public Task AddAsync(UserStory story)
+        => _context.UserStories.AddAsync(story).AsTask();
+
+    public Task<UserStory?> GetByIdWithEpicAsync(int storyId)
+        => _context.UserStories
             .Include(s => s.Epic)
             .FirstOrDefaultAsync(s => s.Id == storyId && !s.IsArchived);
-    }
-    
+
     public Task<UserStory?> GetByIdWithEpicIncludingArchivedAsync(int id)
         => _context.UserStories
             .Include(s => s.Epic)
             .FirstOrDefaultAsync(s => s.Id == id);
-    public async Task<List<UserStory>> GetByEpicIdAsync(int epicId)
-    {
-        return await _context.UserStories
-            .Where(s => s.EpicId == epicId && !s.IsArchived)
-            .OrderBy(s => s.Position)
-            .ToListAsync();
-    }
 
-    public async Task<UserStory?> GetByIdWithEpicAndBacklogAsync(int storyId)
-    {
-        return await _context.UserStories
+    public Task<List<UserStory>> GetByEpicIdAsync(int epicId)
+        => _context.UserStories
+            .Where(s => s.EpicId == epicId && !s.IsArchived)
+            .OrderBy(s => s.BacklogPosition)
+            .ToListAsync();
+
+    public Task<UserStory?> GetByIdWithEpicAndBacklogAsync(int storyId)
+        => _context.UserStories
             .Include(s => s.Epic)
             .ThenInclude(e => e.ProductBacklog)
             .FirstOrDefaultAsync(s => s.Id == storyId && !s.IsArchived);
-    }
 
-    public async Task<int> GetNextPositionAsync(int epicId)
+    public async Task<int> GetNextBacklogPositionAsync(int epicId)
     {
         var max = await _context.UserStories
             .Where(s => s.EpicId == epicId && !s.IsArchived)
-            .Select(s => (int?)s.Position)
+            .Select(s => (int?)s.BacklogPosition)
             .MaxAsync();
 
         return (max ?? -1) + 1;
     }
 
-    // âœ… usado para posiÃ§Ã£o temporÃ¡ria
-    public async Task<int> GetMaxPositionAsync(int epicId)
+    public async Task<int> GetMaxBacklogPositionAsync(int epicId)
     {
         var max = await _context.UserStories
             .Where(s => s.EpicId == epicId && !s.IsArchived)
-            .Select(s => (int?)s.Position)
+            .Select(s => (int?)s.BacklogPosition)
             .MaxAsync();
 
         return max ?? -1;
     }
 
-    // âœ… set direto no banco (sem tracking)
-    public async Task SetPositionAsync(int storyId, int position)
-    {
-        await _context.UserStories
+    public Task SetBacklogPositionAsync(int storyId, int position)
+        => _context.UserStories
             .Where(s => s.Id == storyId && !s.IsArchived)
             .ExecuteUpdateAsync(setters =>
-                setters.SetProperty(s => s.Position, position));
-    }
+                setters.SetProperty(s => s.BacklogPosition, position));
 
-    // âœ… shift por faixa (drag-ready)
-    public async Task ShiftPositionsAsync(int epicId, int fromPosition, int toPosition)
+    public async Task ShiftBacklogPositionsAsync(int epicId, int fromPosition, int toPosition)
     {
         if (fromPosition == toPosition) return;
 
-        // Move para cima: itens [to..from-1] descem +1
         if (toPosition < fromPosition)
         {
             await _context.UserStories
                 .Where(s => s.EpicId == epicId
-                            && s.Position >= toPosition
-                            && s.Position < fromPosition
+                            && s.BacklogPosition >= toPosition
+                            && s.BacklogPosition < fromPosition
                             && !s.IsArchived)
                 .ExecuteUpdateAsync(setters =>
-                    setters.SetProperty(s => s.Position, s => s.Position + 1));
+                    setters.SetProperty(s => s.BacklogPosition, s => s.BacklogPosition + 1));
             return;
         }
 
-        // Move para baixo: itens [from+1..to] sobem -1
         await _context.UserStories
             .Where(s => s.EpicId == epicId
-                        && s.Position > fromPosition
-                        && s.Position <= toPosition
+                        && s.BacklogPosition > fromPosition
+                        && s.BacklogPosition <= toPosition
                         && !s.IsArchived)
             .ExecuteUpdateAsync(setters =>
-                setters.SetProperty(s => s.Position, s => s.Position - 1));
+                setters.SetProperty(s => s.BacklogPosition, s => s.BacklogPosition - 1));
     }
-    
-    public async Task SetEpicAndPositionAsync(int storyId, int epicId, int position)
-    {
-        await _context.UserStories
+
+    public Task SetEpicAndBacklogPositionAsync(int storyId, int epicId, int position)
+        => _context.UserStories
             .Where(s => s.Id == storyId && !s.IsArchived)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(s => s.EpicId, epicId)
-                .SetProperty(s => s.Position, position));
-    }
+                .SetProperty(s => s.BacklogPosition, position)
+                .SetProperty(s => s.UpdatedAt, DateTime.UtcNow));
 
-    // Fecha buraco no Ã©pico de origem: tudo que estÃ¡ depois da posiÃ§Ã£o removida desce -1
-    public async Task DecrementPositionsAfterAsync(int epicId, int position)
-    {
-        await _context.UserStories
-            .Where(s => s.EpicId == epicId && s.Position > position && !s.IsArchived)
+    public Task DecrementBacklogPositionsAfterAsync(int epicId, int position)
+        => _context.UserStories
+            .Where(s => s.EpicId == epicId && s.BacklogPosition > position && !s.IsArchived)
             .ExecuteUpdateAsync(setters =>
-                setters.SetProperty(s => s.Position, s => s.Position - 1));
-    }
+                setters.SetProperty(s => s.BacklogPosition, s => s.BacklogPosition - 1));
 
-    // Abre espaÃ§o no Ã©pico de destino: tudo >= toPosition sobe +1
-    public async Task IncrementPositionsFromAsync(int epicId, int position)
-    {
-        await _context.UserStories
-            .Where(s => s.EpicId == epicId && s.Position >= position && !s.IsArchived)
+    public Task IncrementBacklogPositionsFromAsync(int epicId, int position)
+        => _context.UserStories
+            .Where(s => s.EpicId == epicId && s.BacklogPosition >= position && !s.IsArchived)
             .ExecuteUpdateAsync(setters =>
-                setters.SetProperty(s => s.Position, s => s.Position + 1));
-    }
-    
-    public async Task ArchiveAsync(int storyId)
-    {
-        await _context.UserStories
+                setters.SetProperty(s => s.BacklogPosition, s => s.BacklogPosition + 1));
+
+    public Task ArchiveAsync(int storyId)
+        => _context.UserStories
             .Where(s => s.Id == storyId && !s.IsArchived)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(s => s.IsArchived, true)
                 .SetProperty(s => s.ArchivedAt, DateTime.UtcNow)
                 .SetProperty(s => s.UpdatedAt, DateTime.UtcNow));
-    }
 
-    public async Task RestoreAsync(int storyId)
-    {
-        await _context.UserStories
+    public Task RestoreAsync(int storyId)
+        => _context.UserStories
             .Where(s => s.Id == storyId && s.IsArchived)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(s => s.IsArchived, false)
                 .SetProperty(s => s.ArchivedAt, (DateTime?)null)
                 .SetProperty(s => s.UpdatedAt, DateTime.UtcNow));
-    }
 
-    public async Task ArchiveByEpicIdAsync(int epicId)
-    {
-        await _context.UserStories
+    public Task ArchiveByEpicIdAsync(int epicId)
+        => _context.UserStories
             .Where(s => s.EpicId == epicId && !s.IsArchived)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(s => s.IsArchived, true)
                 .SetProperty(s => s.ArchivedAt, DateTime.UtcNow)
                 .SetProperty(s => s.UpdatedAt, DateTime.UtcNow));
-    }
-    
-    public async Task RestoreByEpicIdAsync(int epicId)
-    {
-        await _context.UserStories
+
+    public Task RestoreByEpicIdAsync(int epicId)
+        => _context.UserStories
             .Where(s => s.EpicId == epicId && s.IsArchived)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(s => s.IsArchived, false)
                 .SetProperty(s => s.ArchivedAt, (DateTime?)null)
                 .SetProperty(s => s.UpdatedAt, DateTime.UtcNow));
-    }
-    
-    public async Task SaveChangesAsync()
-        => await _context.SaveChangesAsync();
+
+    public Task SaveChangesAsync()
+        => _context.SaveChangesAsync();
 }

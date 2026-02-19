@@ -12,8 +12,8 @@ using archFlowServer.Data;
 namespace ArchFlowServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260212221910_AddLabelsCardLabelsAndAttachments")]
-    partial class AddLabelsCardLabelsAndAttachments
+    [Migration("20260219185901_MakeEpicPositionUniqueDeferrable")]
+    partial class MakeEpicPositionUniqueDeferrable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -82,19 +82,6 @@ namespace ArchFlowServer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("ActualHours")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("AssigneeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(7)
-                        .HasColumnType("character varying(7)")
-                        .HasDefaultValue("#ffffff");
-
                     b.Property<int>("ColumnId")
                         .HasColumnType("integer");
 
@@ -103,53 +90,30 @@ namespace ArchFlowServer.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int?>("EstimatedHours")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Position")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<int?>("StoryTaskId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<int?>("UserStoryId")
+                    b.Property<int>("UserStoryId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StoryTaskId");
+                    b.HasIndex("ColumnId");
 
                     b.HasIndex("UserStoryId");
 
                     b.HasIndex("ColumnId", "Position")
                         .IsUnique();
 
-                    b.ToTable("board_cards", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_BoardCard_Origin", "(\"UserStoryId\" IS NOT NULL AND \"StoryTaskId\" IS NULL)\r\n          OR (\"UserStoryId\" IS NULL AND \"StoryTaskId\" IS NOT NULL)");
-                        });
+                    b.HasIndex("ColumnId", "UserStoryId")
+                        .IsUnique();
+
+                    b.ToTable("board_cards", (string)null);
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.BoardColumn", b =>
@@ -208,6 +172,49 @@ namespace ArchFlowServer.Migrations
                     b.ToTable("board_columns", (string)null);
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.CardActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardId");
+
+                    b.HasIndex("CardId", "CreatedAt");
+
+                    b.ToTable("card_activities", (string)null);
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.CardAttachment", b =>
                 {
                     b.Property<int>("Id")
@@ -250,6 +257,46 @@ namespace ArchFlowServer.Migrations
                     b.HasIndex("CardId");
 
                     b.ToTable("card_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.CardComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CardId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.ToTable("card_comments", (string)null);
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.CardLabel", b =>
@@ -675,10 +722,16 @@ namespace ArchFlowServer.Migrations
                     b.Property<int?>("EstimatedHours")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Priority")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -696,6 +749,9 @@ namespace ArchFlowServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserStoryId");
+
+                    b.HasIndex("UserStoryId", "Position")
+                        .IsUnique();
 
                     b.ToTable("story_tasks", (string)null);
                 });
@@ -766,6 +822,9 @@ namespace ArchFlowServer.Migrations
                     b.Property<Guid?>("AssigneeId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("BacklogPosition")
+                        .HasColumnType("integer");
+
                     b.Property<string>("BusinessValue")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -805,9 +864,6 @@ namespace ArchFlowServer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("Position")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Priority")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -832,10 +888,10 @@ namespace ArchFlowServer.Migrations
 
                     b.HasIndex("EpicId");
 
-                    b.HasIndex("EpicId", "IsArchived");
-
-                    b.HasIndex("EpicId", "Position")
+                    b.HasIndex("EpicId", "BacklogPosition")
                         .IsUnique();
+
+                    b.HasIndex("EpicId", "IsArchived");
 
                     b.ToTable("user_stories", null, t =>
                         {
@@ -874,19 +930,13 @@ namespace ArchFlowServer.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("archFlowServer.Models.Entities.StoryTask", "StoryTask")
-                        .WithMany()
-                        .HasForeignKey("StoryTaskId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
-                        .WithMany()
+                        .WithMany("BoardCards")
                         .HasForeignKey("UserStoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Column");
-
-                    b.Navigation("StoryTask");
 
                     b.Navigation("UserStory");
                 });
@@ -902,6 +952,17 @@ namespace ArchFlowServer.Migrations
                     b.Navigation("Board");
                 });
 
+            modelBuilder.Entity("archFlowServer.Models.Entities.CardActivity", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.BoardCard", "Card")
+                        .WithMany()
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Card");
+                });
+
             modelBuilder.Entity("archFlowServer.Models.Entities.CardAttachment", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.BoardCard", "Card")
@@ -911,6 +972,24 @@ namespace ArchFlowServer.Migrations
                         .IsRequired();
 
                     b.Navigation("Card");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.CardComment", b =>
+                {
+                    b.HasOne("archFlowServer.Models.Entities.BoardCard", "Card")
+                        .WithMany()
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("archFlowServer.Models.Entities.CardComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Card");
+
+                    b.Navigation("ParentComment");
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.CardLabel", b =>
@@ -1026,7 +1105,7 @@ namespace ArchFlowServer.Migrations
             modelBuilder.Entity("archFlowServer.Models.Entities.StoryTask", b =>
                 {
                     b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
-                        .WithMany()
+                        .WithMany("Tasks")
                         .HasForeignKey("UserStoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1048,6 +1127,11 @@ namespace ArchFlowServer.Migrations
             modelBuilder.Entity("archFlowServer.Models.Entities.BoardColumn", b =>
                 {
                     b.Navigation("Cards");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.CardComment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.Epic", b =>
@@ -1074,6 +1158,13 @@ namespace ArchFlowServer.Migrations
                         .IsRequired();
 
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.UserStory", b =>
+                {
+                    b.Navigation("BoardCards");
+
+                    b.Navigation("Tasks");
                 });
 #pragma warning restore 612, 618
         }

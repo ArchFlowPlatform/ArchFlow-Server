@@ -10,7 +10,7 @@ namespace archFlowServer.Repositories.Interfaces
         Task<Project?> GetArchivedByIdAsync(Guid projectId);
 
         // Opcional: se você precisar buscar independente de status
-        Task<Project?> GetByIdAsync(Guid projectId)
+        Task<Project?> GetByIdAsync(Guid projectId);
 
         // Persistência
         Task AddAsync(Project project);

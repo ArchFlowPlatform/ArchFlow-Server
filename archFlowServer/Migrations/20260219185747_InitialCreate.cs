@@ -51,6 +51,29 @@ namespace ArchFlowServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "labels",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProjectId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Color = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_labels", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_labels_projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "product_backlogs",
                 columns: table => new
                 {
@@ -234,7 +257,7 @@ namespace ArchFlowServer.Migrations
                     Priority = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     BusinessValue = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Position = table.Column<int>(type: "integer", nullable: false),
+                    BacklogPosition = table.Column<int>(type: "integer", nullable: false),
                     AssigneeId = table.Column<Guid>(type: "uuid", nullable: true),
                     IsArchived = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     ArchivedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
@@ -324,6 +347,8 @@ namespace ArchFlowServer.Migrations
                     EstimatedHours = table.Column<int>(type: "integer", nullable: true),
                     ActualHours = table.Column<int>(type: "integer", nullable: true),
                     Priority = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    Position = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
                 },
@@ -345,36 +370,20 @@ namespace ArchFlowServer.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ColumnId = table.Column<int>(type: "integer", nullable: false),
-                    UserStoryId = table.Column<int>(type: "integer", nullable: true),
-                    StoryTaskId = table.Column<int>(type: "integer", nullable: true),
-                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    AssigneeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UserStoryId = table.Column<int>(type: "integer", nullable: false),
                     Position = table.Column<int>(type: "integer", nullable: false),
-                    Priority = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    DueDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
-                    EstimatedHours = table.Column<int>(type: "integer", nullable: true),
-                    ActualHours = table.Column<int>(type: "integer", nullable: true),
-                    Color = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false, defaultValue: "#ffffff"),
                     CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_board_cards", x => x.Id);
-                    table.CheckConstraint("CK_BoardCard_Origin", "(\"UserStoryId\" IS NOT NULL AND \"StoryTaskId\" IS NULL)\r\n          OR (\"UserStoryId\" IS NULL AND \"StoryTaskId\" IS NOT NULL)");
                     table.ForeignKey(
                         name: "FK_board_cards_board_columns_ColumnId",
                         column: x => x.ColumnId,
                         principalTable: "board_columns",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_board_cards_story_tasks_StoryTaskId",
-                        column: x => x.StoryTaskId,
-                        principalTable: "story_tasks",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_board_cards_user_stories_UserStoryId",
                         column: x => x.UserStoryId,
@@ -383,6 +392,118 @@ namespace ArchFlowServer.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "card_activities",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CardId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ActivityType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    OldValue = table.Column<string>(type: "jsonb", nullable: true),
+                    NewValue = table.Column<string>(type: "jsonb", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_card_activities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_card_activities_board_cards_CardId",
+                        column: x => x.CardId,
+                        principalTable: "board_cards",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "card_attachments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CardId = table.Column<int>(type: "integer", nullable: false),
+                    FileName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    FilePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    FileSize = table.Column<int>(type: "integer", nullable: true),
+                    MimeType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    UploadedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_card_attachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_card_attachments_board_cards_CardId",
+                        column: x => x.CardId,
+                        principalTable: "board_cards",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "card_comments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CardId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    ParentCommentId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_card_comments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_card_comments_board_cards_CardId",
+                        column: x => x.CardId,
+                        principalTable: "board_cards",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_card_comments_card_comments_ParentCommentId",
+                        column: x => x.ParentCommentId,
+                        principalTable: "card_comments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "card_labels",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CardId = table.Column<int>(type: "integer", nullable: false),
+                    LabelId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_card_labels", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_card_labels_board_cards_CardId",
+                        column: x => x.CardId,
+                        principalTable: "board_cards",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_card_labels_labels_LabelId",
+                        column: x => x.LabelId,
+                        principalTable: "labels",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_board_cards_ColumnId",
+                table: "board_cards",
+                column: "ColumnId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_board_cards_ColumnId_Position",
                 table: "board_cards",
@@ -390,9 +511,10 @@ namespace ArchFlowServer.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_board_cards_StoryTaskId",
+                name: "IX_board_cards_ColumnId_UserStoryId",
                 table: "board_cards",
-                column: "StoryTaskId");
+                columns: new[] { "ColumnId", "UserStoryId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_board_cards_UserStoryId",
@@ -417,6 +539,42 @@ namespace ArchFlowServer.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_card_activities_CardId",
+                table: "card_activities",
+                column: "CardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_activities_CardId_CreatedAt",
+                table: "card_activities",
+                columns: new[] { "CardId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_attachments_CardId",
+                table: "card_attachments",
+                column: "CardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_comments_CardId",
+                table: "card_comments",
+                column: "CardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_comments_ParentCommentId",
+                table: "card_comments",
+                column: "ParentCommentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_labels_CardId_LabelId",
+                table: "card_labels",
+                columns: new[] { "CardId", "LabelId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_card_labels_LabelId",
+                table: "card_labels",
+                column: "LabelId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_epics_ProductBacklogId",
                 table: "epics",
                 column: "ProductBacklogId");
@@ -430,6 +588,12 @@ namespace ArchFlowServer.Migrations
                 name: "IX_epics_ProductBacklogId_Position",
                 table: "epics",
                 columns: new[] { "ProductBacklogId", "Position" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_labels_ProjectId_Name",
+                table: "labels",
+                columns: new[] { "ProjectId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -490,20 +654,26 @@ namespace ArchFlowServer.Migrations
                 column: "UserStoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_story_tasks_UserStoryId_Position",
+                table: "story_tasks",
+                columns: new[] { "UserStoryId", "Position" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_stories_EpicId",
                 table: "user_stories",
                 column: "EpicId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_user_stories_EpicId_BacklogPosition",
+                table: "user_stories",
+                columns: new[] { "EpicId", "BacklogPosition" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_stories_EpicId_IsArchived",
                 table: "user_stories",
                 columns: new[] { "EpicId", "IsArchived" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_user_stories_EpicId_Position",
-                table: "user_stories",
-                columns: new[] { "EpicId", "Position" },
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_Email",
@@ -516,7 +686,16 @@ namespace ArchFlowServer.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "board_cards");
+                name: "card_activities");
+
+            migrationBuilder.DropTable(
+                name: "card_attachments");
+
+            migrationBuilder.DropTable(
+                name: "card_comments");
+
+            migrationBuilder.DropTable(
+                name: "card_labels");
 
             migrationBuilder.DropTable(
                 name: "project_invites");
@@ -528,25 +707,31 @@ namespace ArchFlowServer.Migrations
                 name: "sprint_items");
 
             migrationBuilder.DropTable(
-                name: "board_columns");
+                name: "story_tasks");
 
             migrationBuilder.DropTable(
-                name: "story_tasks");
+                name: "board_cards");
+
+            migrationBuilder.DropTable(
+                name: "labels");
 
             migrationBuilder.DropTable(
                 name: "users");
 
             migrationBuilder.DropTable(
-                name: "boards");
+                name: "board_columns");
 
             migrationBuilder.DropTable(
                 name: "user_stories");
 
             migrationBuilder.DropTable(
-                name: "sprints");
+                name: "boards");
 
             migrationBuilder.DropTable(
                 name: "epics");
+
+            migrationBuilder.DropTable(
+                name: "sprints");
 
             migrationBuilder.DropTable(
                 name: "product_backlogs");

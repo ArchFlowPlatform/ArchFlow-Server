@@ -74,6 +74,32 @@ public class BoardCardRepository : IBoardCardRepository
                 setters.SetProperty(c => c.Position, c => c.Position - 1));
     }
 
+    // ✅ drag reorder dentro da mesma coluna
+    public async Task ShiftPositionsAsync(int columnId, int fromPosition, int toPosition)
+    {
+        if (fromPosition == toPosition) return;
+
+        // move pra cima: itens [to..from-1] descem +1
+        if (toPosition < fromPosition)
+        {
+            await _context.BoardCards
+                .Where(c => c.ColumnId == columnId
+                            && c.Position >= toPosition
+                            && c.Position < fromPosition)
+                .ExecuteUpdateAsync(setters =>
+                    setters.SetProperty(c => c.Position, c => c.Position + 1));
+            return;
+        }
+
+        // move pra baixo: itens [from+1..to] sobem -1
+        await _context.BoardCards
+            .Where(c => c.ColumnId == columnId
+                        && c.Position > fromPosition
+                        && c.Position <= toPosition)
+            .ExecuteUpdateAsync(setters =>
+                setters.SetProperty(c => c.Position, c => c.Position - 1));
+    }
+
     public async Task SetColumnAsync(int cardId, int toColumnId)
     {
         await _context.BoardCards

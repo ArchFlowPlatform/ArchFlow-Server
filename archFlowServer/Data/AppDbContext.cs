@@ -301,39 +301,43 @@ namespace archFlowServer.Data
                 entity.Property(us => us.AcceptanceCriteria).HasColumnType("text");
 
                 entity.Property(us => us.Complexity)
-                      .HasConversion<string>()
-                      .HasMaxLength(20)
-                      .IsRequired();
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
 
-                entity.Property(us => us.Effort);
+                entity.Property(us => us.Effort).IsRequired(false);
                 entity.Property(us => us.Dependencies).HasColumnType("text");
 
                 entity.Property(us => us.Priority).HasDefaultValue(0).IsRequired();
 
                 entity.Property(us => us.BusinessValue)
-                      .HasConversion<string>()
-                      .HasMaxLength(20)
-                      .IsRequired();
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired();
 
                 entity.Property(us => us.Status)
-                      .HasConversion<string>()
-                      .HasMaxLength(50)
-                      .IsRequired();
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .IsRequired();
 
-                entity.Property(us => us.Position)
-                      .IsRequired();
+                // ✅ Opção 2: posição do backlog, não do kanban
+                entity.Property(us => us.BacklogPosition)
+                    .IsRequired();
 
-                entity.Property(us => us.AssigneeId);
-                entity.Property(e => e.IsArchived)
-                      .HasDefaultValue(false)
-                      .IsRequired();
+                entity.Property(us => us.AssigneeId).IsRequired(false);
 
-                entity.Property(e => e.ArchivedAt).IsRequired(false);
+                entity.Property(us => us.IsArchived)
+                    .HasDefaultValue(false)
+                    .IsRequired();
+
+                entity.Property(us => us.ArchivedAt).IsRequired(false);
+
                 entity.Property(us => us.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
                 entity.Property(us => us.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
 
-                entity.HasIndex(s => new { s.EpicId, s.Position })
-                      .IsUnique();
+                // ✅ backlog order por epic (somente para não-archived, se quiser de verdade no PG use index parcial via migration)
+                entity.HasIndex(s => new { s.EpicId, s.BacklogPosition })
+                    .IsUnique();
 
                 entity.HasIndex(s => new { s.EpicId, s.IsArchived });
                 entity.HasIndex(s => s.EpicId);
@@ -343,6 +347,7 @@ namespace archFlowServer.Data
                     .HasForeignKey(us => us.EpicId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+                // ⚠️ se você usa HasConversion<string>(), o check precisa bater com os valores gerados (nomes do enum)
                 entity.HasCheckConstraint("CK_UserStory_Complexity", "\"Complexity\" IN ('Low','Medium','High','VeryHigh')");
                 entity.HasCheckConstraint("CK_UserStory_BusinessValue", "\"BusinessValue\" IN ('High','Medium','Low')");
                 entity.HasCheckConstraint("CK_UserStory_Status", "\"Status\" IN ('Draft','Ready','InProgress','Done')");
@@ -512,15 +517,21 @@ namespace archFlowServer.Data
                 entity.Property(e => e.ActualHours);
 
                 entity.Property(e => e.Priority).HasDefaultValue(0).IsRequired();
+                entity.Property(e => e.Position).IsRequired(); // se você vai ter drag/reorder
 
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
 
                 entity.HasOne(e => e.UserStory)
-                    .WithMany()
+                    .WithMany(us => us.Tasks)
                     .HasForeignKey(e => e.UserStoryId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.UserStoryId, e.Position }).IsUnique();
+                entity.HasIndex(e => e.UserStoryId);
             });
+
+
 
             modelBuilder.Entity<BoardColumn>(entity =>
             {
@@ -564,27 +575,10 @@ namespace archFlowServer.Data
 
                 entity.Property(e => e.ColumnId).IsRequired();
 
-                entity.Property(e => e.UserStoryId).IsRequired(false);
-                entity.Property(e => e.StoryTaskId).IsRequired(false);
-
-                entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
-                entity.Property(e => e.Description).HasColumnType("text").IsRequired();
-
-                entity.Property(e => e.AssigneeId);
+                // ✅ obrigatório: card sempre aponta para uma UserStory
+                entity.Property(e => e.UserStoryId).IsRequired();
 
                 entity.Property(e => e.Position).IsRequired();
-
-                entity.Property(e => e.Priority)
-                    .HasConversion<string>()
-                    .HasMaxLength(20)
-                    .IsRequired();
-
-                entity.Property(e => e.DueDate).IsRequired(false);
-
-                entity.Property(e => e.EstimatedHours);
-                entity.Property(e => e.ActualHours);
-
-                entity.Property(e => e.Color).HasMaxLength(7).HasDefaultValue("#ffffff").IsRequired();
 
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
@@ -595,25 +589,22 @@ namespace archFlowServer.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.UserStory)
-                    .WithMany()
+                    .WithMany(us => us.BoardCards) // ✅ se você tiver ICollection<BoardCard> BoardCards em UserStory
                     .HasForeignKey(e => e.UserStoryId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.StoryTask)
-                    .WithMany()
-                    .HasForeignKey(e => e.StoryTaskId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                // ✅ order dentro da coluna
+                entity.HasIndex(e => new { e.ColumnId, e.Position })
+                    .IsUnique();
 
-                entity.HasIndex(e => new { e.ColumnId, e.Position }).IsUnique();
+                // ✅ evita mesma story duplicada na mesma coluna (opcional mas recomendado)
+                entity.HasIndex(e => new { e.ColumnId, e.UserStoryId })
+                    .IsUnique();
 
-                // XOR: exatamente 1 origem
-                entity.HasCheckConstraint(
-                    "CK_BoardCard_Origin",
-                    @"(""UserStoryId"" IS NOT NULL AND ""StoryTaskId"" IS NULL)
-          OR (""UserStoryId"" IS NULL AND ""StoryTaskId"" IS NOT NULL)"
-                );
+                entity.HasIndex(e => e.ColumnId);
+                entity.HasIndex(e => e.UserStoryId);
             });
-            
+
             modelBuilder.Entity<Label>(entity =>
             {
                 entity.ToTable("labels");
