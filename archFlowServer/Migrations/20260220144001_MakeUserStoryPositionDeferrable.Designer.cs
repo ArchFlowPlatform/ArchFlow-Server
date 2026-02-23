@@ -12,8 +12,8 @@ using archFlowServer.Data;
 namespace ArchFlowServer.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260219185901_MakeEpicPositionUniqueDeferrable")]
-    partial class MakeEpicPositionUniqueDeferrable
+    [Migration("20260220144001_MakeUserStoryPositionDeferrable")]
+    partial class MakeUserStoryPositionDeferrable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -666,9 +666,7 @@ namespace ArchFlowServer.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AddedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Notes")
                         .IsRequired()
@@ -686,9 +684,6 @@ namespace ArchFlowServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserStoryId");
-
-                    b.HasIndex("SprintId", "Position")
-                        .IsUnique();
 
                     b.HasIndex("SprintId", "UserStoryId")
                         .IsUnique();
@@ -711,46 +706,50 @@ namespace ArchFlowServer.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<int?>("EstimatedHours")
                         .HasColumnType("integer");
 
                     b.Property<int>("Position")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<int>("Priority")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
-                    b.Property<int>("Status")
+                    b.Property<int>("SprintItemId")
                         .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("NOW()");
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<int>("UserStoryId")
+                    b.Property<int?>("UserStoryId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserStoryId");
 
-                    b.HasIndex("UserStoryId", "Position")
+                    b.HasIndex("SprintItemId", "Position")
                         .IsUnique();
 
                     b.ToTable("story_tasks", (string)null);
@@ -1094,7 +1093,7 @@ namespace ArchFlowServer.Migrations
                     b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
                         .WithMany()
                         .HasForeignKey("UserStoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Sprint");
@@ -1104,13 +1103,17 @@ namespace ArchFlowServer.Migrations
 
             modelBuilder.Entity("archFlowServer.Models.Entities.StoryTask", b =>
                 {
-                    b.HasOne("archFlowServer.Models.Entities.UserStory", "UserStory")
+                    b.HasOne("archFlowServer.Models.Entities.SprintItem", "SprintItem")
                         .WithMany("Tasks")
-                        .HasForeignKey("UserStoryId")
+                        .HasForeignKey("SprintItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("UserStory");
+                    b.HasOne("archFlowServer.Models.Entities.UserStory", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("UserStoryId");
+
+                    b.Navigation("SprintItem");
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.UserStory", b =>
@@ -1158,6 +1161,11 @@ namespace ArchFlowServer.Migrations
                         .IsRequired();
 
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("archFlowServer.Models.Entities.SprintItem", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 
             modelBuilder.Entity("archFlowServer.Models.Entities.UserStory", b =>

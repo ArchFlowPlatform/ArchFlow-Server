@@ -11,57 +11,60 @@ public class StoryTaskService
 {
     private readonly AppDbContext _context;
     private readonly IProjectRepository _projectRepository;
-    private readonly IUserStoryRepository _userStoryRepository;
+    private readonly ISprintRepository _sprintRepository;
+    private readonly ISprintItemRepository _sprintItemRepository;
     private readonly IStoryTaskRepository _taskRepository;
 
     public StoryTaskService(
         AppDbContext context,
         IProjectRepository projectRepository,
-        IUserStoryRepository userStoryRepository,
+        ISprintRepository sprintRepository,
+        ISprintItemRepository sprintItemRepository,
         IStoryTaskRepository taskRepository)
     {
         _context = context;
         _projectRepository = projectRepository;
-        _userStoryRepository = userStoryRepository;
+        _sprintRepository = sprintRepository;
+        _sprintItemRepository = sprintItemRepository;
         _taskRepository = taskRepository;
     }
 
-    public async Task<IEnumerable<StoryTaskResponseDto>> GetAllAsync(Guid projectId, int userStoryId)
+    public async Task<IEnumerable<StoryTaskResponseDto>> GetAllAsync(Guid projectId, Guid sprintId, int sprintItemId)
     {
-        await EnsureProjectAndStoryAsync(projectId, userStoryId);
+        var sprintItem = await EnsureProjectSprintAndItemAsync(projectId, sprintId, sprintItemId);
 
-        var tasks = await _taskRepository.GetAllByUserStoryAsync(projectId, userStoryId);
-        return tasks.Select(MapToDto);
+        var tasks = await _taskRepository.GetAllBySprintItemAsync(projectId, sprintItemId);
+        return tasks.Select(t => MapToDto(t, sprintItem.UserStoryId));
     }
 
-    public async Task<StoryTaskResponseDto> CreateAsync(Guid projectId, int userStoryId, CreateStoryTaskDto dto)
+    public async Task<StoryTaskResponseDto> CreateAsync(Guid projectId, Guid sprintId, int sprintItemId, CreateStoryTaskDto dto)
     {
-        await EnsureProjectAndStoryAsync(projectId, userStoryId);
+        var sprintItem = await EnsureProjectSprintAndItemAsync(projectId, sprintId, sprintItemId);
 
-        var nextPosition = await _taskRepository.GetNextPositionAsync(userStoryId);
+        var nextPosition = await _taskRepository.GetNextPositionAsync(sprintItemId);
 
         var task = new StoryTask(
-            userStoryId: userStoryId,
+            sprintItemId: sprintItemId,
             title: dto.Title,
             description: dto.Description,
             assigneeId: dto.AssigneeId,
-            position: nextPosition,
             estimatedHours: dto.EstimatedHours,
             priority: dto.Priority,
+            position: nextPosition,
             status: StoryTaskStatus.Todo
         );
 
         await _taskRepository.AddAsync(task);
         await _taskRepository.SaveChangesAsync();
 
-        return MapToDto(task);
+        return MapToDto(task, sprintItem.UserStoryId);
     }
 
-    public async Task<StoryTaskResponseDto> UpdateAsync(Guid projectId, int userStoryId, int taskId, UpdateStoryTaskDto dto)
+    public async Task<StoryTaskResponseDto> UpdateAsync(Guid projectId, Guid sprintId, int sprintItemId, int taskId, UpdateStoryTaskDto dto)
     {
-        await EnsureProjectAndStoryAsync(projectId, userStoryId);
+        var sprintItem = await EnsureProjectSprintAndItemAsync(projectId, sprintId, sprintItemId);
 
-        var task = await _taskRepository.GetByIdAsync(projectId, userStoryId, taskId)
+        var task = await _taskRepository.GetByIdAsync(projectId, sprintItemId, taskId)
             ?? throw new NotFoundException("Task não encontrada.");
 
         task.Update(
@@ -75,17 +78,16 @@ public class StoryTaskService
         );
 
         await _taskRepository.SaveChangesAsync();
-        return MapToDto(task);
+        return MapToDto(task, sprintItem.UserStoryId);
     }
 
-    public async Task DeleteAsync(Guid projectId, int userStoryId, int taskId)
+    public async Task DeleteAsync(Guid projectId, Guid sprintId, int sprintItemId, int taskId)
     {
-        await EnsureProjectAndStoryAsync(projectId, userStoryId);
+        _ = await EnsureProjectSprintAndItemAsync(projectId, sprintId, sprintItemId);
 
-        var task = await _taskRepository.GetByIdAsync(projectId, userStoryId, taskId)
+        var task = await _taskRepository.GetByIdAsync(projectId, sprintItemId, taskId)
             ?? throw new NotFoundException("Task não encontrada.");
 
-        // ✅ fecha buraco na lista
         var removedPos = task.Position;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
@@ -93,28 +95,24 @@ public class StoryTaskService
         _taskRepository.Remove(task);
         await _taskRepository.SaveChangesAsync();
 
-        await _taskRepository.DecrementPositionsAfterAsync(userStoryId, removedPos);
+        await _taskRepository.DecrementPositionsAfterAsync(sprintItemId, removedPos);
 
         await tx.CommitAsync();
     }
 
-    // ================================
-    // Drag reorder (mesma user story)
-    // ================================
-
-    public async Task ReorderAsync(Guid projectId, int userStoryId, ReorderStoryTaskDto dto)
+    public async Task ReorderAsync(Guid projectId, Guid sprintId, int sprintItemId, ReorderStoryTaskDto dto)
     {
-        await EnsureProjectAndStoryAsync(projectId, userStoryId);
+        _ = await EnsureProjectSprintAndItemAsync(projectId, sprintId, sprintItemId);
 
         if (dto.ToPosition < 0)
             throw new ValidationException("ToPosition inválido.");
 
-        var task = await _taskRepository.GetByIdAsync(projectId, userStoryId, dto.TaskId)
+        var task = await _taskRepository.GetByIdAsync(projectId, sprintItemId, dto.TaskId)
             ?? throw new NotFoundException("Task não encontrada.");
 
         var from = task.Position;
 
-        var maxPos = await _taskRepository.GetMaxPositionAsync(userStoryId);
+        var maxPos = await _taskRepository.GetMaxPositionAsync(sprintItemId);
         var to = dto.ToPosition > maxPos ? maxPos : dto.ToPosition;
 
         if (from == to) return;
@@ -124,33 +122,28 @@ public class StoryTaskService
         await using var tx = await _context.Database.BeginTransactionAsync();
 
         await _taskRepository.SetPositionAsync(task.Id, temp);
-        await _taskRepository.ShiftPositionsAsync(userStoryId, from, to);
+        await _taskRepository.ShiftPositionsAsync(sprintItemId, from, to);
         await _taskRepository.SetPositionAsync(task.Id, to);
 
         await tx.CommitAsync();
     }
 
-    // ================================
-    // Drag move (entre user stories)
-    // ================================
-
-    public async Task MoveAsync(Guid projectId, int fromUserStoryId, MoveStoryTaskDto dto)
+    public async Task MoveAsync(Guid projectId, Guid sprintId, int fromSprintItemId, MoveStoryTaskDto dto)
     {
-        await EnsureProjectAndStoryAsync(projectId, fromUserStoryId);
-        await EnsureProjectAndStoryAsync(projectId, dto.ToUserStoryId);
+        var fromItem = await EnsureProjectSprintAndItemAsync(projectId, sprintId, fromSprintItemId);
+        var toItem = await EnsureProjectSprintAndItemAsync(projectId, sprintId, dto.ToSprintItemId);
 
         if (dto.ToPosition < 0)
             throw new ValidationException("ToPosition inválido.");
 
-        var task = await _taskRepository.GetByIdAsync(projectId, fromUserStoryId, dto.TaskId)
+        var task = await _taskRepository.GetByIdAsync(projectId, fromSprintItemId, dto.TaskId)
             ?? throw new NotFoundException("Task não encontrada.");
 
         var fromPos = task.Position;
 
-        // mesmo container? vira reorder
-        if (fromUserStoryId == dto.ToUserStoryId)
+        if (fromSprintItemId == dto.ToSprintItemId)
         {
-            await ReorderAsync(projectId, fromUserStoryId, new ReorderStoryTaskDto
+            await ReorderAsync(projectId, sprintId, fromSprintItemId, new ReorderStoryTaskDto
             {
                 TaskId = dto.TaskId,
                 ToPosition = dto.ToPosition
@@ -158,53 +151,55 @@ public class StoryTaskService
             return;
         }
 
-        var maxDest = await _taskRepository.GetMaxPositionAsync(dto.ToUserStoryId);
+        var maxDest = await _taskRepository.GetMaxPositionAsync(dto.ToSprintItemId);
         var destCount = maxDest + 1;
         var toPosition = dto.ToPosition > destCount ? destCount : dto.ToPosition;
 
-        var maxFrom = await _taskRepository.GetMaxPositionAsync(fromUserStoryId);
+        var maxFrom = await _taskRepository.GetMaxPositionAsync(fromSprintItemId);
         var temp = maxFrom + 1;
 
         await using var tx = await _context.Database.BeginTransactionAsync();
 
-        // tira do range do "from" sem quebrar unique
         await _taskRepository.SetPositionAsync(task.Id, temp);
 
-        // fecha buraco no from
-        await _taskRepository.DecrementPositionsAfterAsync(fromUserStoryId, fromPos);
+        await _taskRepository.DecrementPositionsAfterAsync(fromSprintItemId, fromPos);
+        await _taskRepository.IncrementPositionsFromAsync(dto.ToSprintItemId, toPosition);
 
-        // abre espaço no destino
-        await _taskRepository.IncrementPositionsFromAsync(dto.ToUserStoryId, toPosition);
-
-        // move para destino
-        await _taskRepository.SetUserStoryAndPositionAsync(task.Id, dto.ToUserStoryId, toPosition);
+        await _taskRepository.SetSprintItemAndPositionAsync(task.Id, dto.ToSprintItemId, toPosition);
 
         await tx.CommitAsync();
+
+        // (MapToDto não é necessário aqui porque o endpoint retorna Ok sem data)
+        _ = fromItem; _ = toItem;
     }
 
     // ==========================
-    // Helpers
+    // Validation (core)
     // ==========================
-
-    private async Task<UserStory> EnsureProjectAndStoryAsync(Guid projectId, int storyId)
+    private async Task<SprintItem> EnsureProjectSprintAndItemAsync(Guid projectId, Guid sprintId, int sprintItemId)
     {
         _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
 
-        var story = await _userStoryRepository.GetByIdWithEpicAndBacklogAsync(storyId)
-            ?? throw new NotFoundException("User story não encontrada.");
+        var sprint = await _sprintRepository.GetActiveByIdAsync(projectId, sprintId)
+            ?? throw new NotFoundException("Sprint não encontrada.");
 
-        var storyProjectId = story.Epic.ProductBacklog.ProjectId;
-        if (storyProjectId != projectId)
-            throw new DomainException("Você não tem acesso a esta user story.");
+        if (sprint.ProjectId != projectId)
+            throw new DomainException("Você não tem acesso a esta sprint.");
 
-        return story;
+        var item = await _sprintItemRepository.GetByIdAsync(projectId, sprintId, sprintItemId)
+            ?? throw new NotFoundException("Sprint item não encontrado.");
+
+        if (item.SprintId != sprintId)
+            throw new DomainException("Este item não pertence à sprint informada.");
+
+        return item;
     }
 
-    private static StoryTaskResponseDto MapToDto(StoryTask t)
+    private static StoryTaskResponseDto MapToDto(StoryTask t, int userStoryId)
         => new(
             t.Id,
-            t.UserStoryId,
+            userStoryId,          // ✅ mantém compatibilidade de frontend: “task pertence a story”
             t.Position,
             t.Title,
             t.Description,

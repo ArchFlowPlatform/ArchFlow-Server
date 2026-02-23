@@ -315,7 +315,7 @@ namespace ArchFlowServer.Migrations
                     UserStoryId = table.Column<int>(type: "integer", nullable: false),
                     Position = table.Column<int>(type: "integer", nullable: false),
                     Notes = table.Column<string>(type: "text", nullable: false),
-                    AddedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
+                    AddedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -331,36 +331,7 @@ namespace ArchFlowServer.Migrations
                         column: x => x.UserStoryId,
                         principalTable: "user_stories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "story_tasks",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserStoryId = table.Column<int>(type: "integer", nullable: false),
-                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    AssigneeId = table.Column<Guid>(type: "uuid", nullable: true),
-                    EstimatedHours = table.Column<int>(type: "integer", nullable: true),
-                    ActualHours = table.Column<int>(type: "integer", nullable: true),
-                    Priority = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    Position = table.Column<int>(type: "integer", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()"),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "NOW()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_story_tasks", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_story_tasks_user_stories_UserStoryId",
-                        column: x => x.UserStoryId,
-                        principalTable: "user_stories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -390,6 +361,41 @@ namespace ArchFlowServer.Migrations
                         principalTable: "user_stories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "story_tasks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SprintItemId = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    AssigneeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    EstimatedHours = table.Column<int>(type: "integer", nullable: true),
+                    ActualHours = table.Column<int>(type: "integer", nullable: true),
+                    Priority = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    Position = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    Status = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UserStoryId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_story_tasks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_story_tasks_sprint_items_SprintItemId",
+                        column: x => x.SprintItemId,
+                        principalTable: "sprint_items",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_story_tasks_user_stories_UserStoryId",
+                        column: x => x.UserStoryId,
+                        principalTable: "user_stories",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -627,12 +633,6 @@ namespace ArchFlowServer.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_sprint_items_SprintId_Position",
-                table: "sprint_items",
-                columns: new[] { "SprintId", "Position" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_sprint_items_SprintId_UserStoryId",
                 table: "sprint_items",
                 columns: new[] { "SprintId", "UserStoryId" },
@@ -649,15 +649,15 @@ namespace ArchFlowServer.Migrations
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_story_tasks_SprintItemId_Position",
+                table: "story_tasks",
+                columns: new[] { "SprintItemId", "Position" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_story_tasks_UserStoryId",
                 table: "story_tasks",
                 column: "UserStoryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_story_tasks_UserStoryId_Position",
-                table: "story_tasks",
-                columns: new[] { "UserStoryId", "Position" },
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_stories_EpicId",
@@ -704,9 +704,6 @@ namespace ArchFlowServer.Migrations
                 name: "project_members");
 
             migrationBuilder.DropTable(
-                name: "sprint_items");
-
-            migrationBuilder.DropTable(
                 name: "story_tasks");
 
             migrationBuilder.DropTable(
@@ -717,6 +714,9 @@ namespace ArchFlowServer.Migrations
 
             migrationBuilder.DropTable(
                 name: "users");
+
+            migrationBuilder.DropTable(
+                name: "sprint_items");
 
             migrationBuilder.DropTable(
                 name: "board_columns");

@@ -8,13 +8,18 @@ public class SprintItem
     public Guid SprintId { get; private set; }
     public int UserStoryId { get; private set; }
 
-    public int Position { get; private set; } 
+    public int Position { get; private set; }
     public string Notes { get; private set; } = string.Empty;
 
     public DateTime AddedAt { get; private set; }
 
     public Sprint Sprint { get; private set; } = null!;
+
+    // ✅ 1 SprintItem aponta para 1 UserStory
     public UserStory UserStory { get; private set; } = null!;
+
+    // ✅ 1 SprintItem tem N Tasks
+    public ICollection<StoryTask> Tasks { get; private set; } = new List<StoryTask>();
 
     private SprintItem() { } // EF
 

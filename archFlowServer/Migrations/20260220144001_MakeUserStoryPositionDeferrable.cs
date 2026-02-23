@@ -9,19 +9,19 @@ namespace ArchFlowServer.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // Remove o índice unique padrão criado pelo EF (se existir)
-            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_user_stories_EpicId_Position"";");
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_user_stories_EpicId_BacklogPosition"";");
 
             // Se a constraint já existir por algum motivo, remove antes (evita conflito)
             migrationBuilder.Sql(@"
                 ALTER TABLE user_stories
-                DROP CONSTRAINT IF EXISTS ""UQ_user_stories_EpicId_Position"";
+                DROP CONSTRAINT IF EXISTS ""UQ_user_stories_EpicId_BacklogPosition"";
             ");
 
             // Cria UNIQUE constraint DEFERRABLE
             migrationBuilder.Sql(@"
                 ALTER TABLE user_stories
-                ADD CONSTRAINT ""UQ_user_stories_EpicId_Position""
-                UNIQUE (""EpicId"", ""Position"")
+                ADD CONSTRAINT ""UQ_user_stories_EpicId_BacklogPosition""
+                UNIQUE (""EpicId"", ""BacklogPosition"")
                 DEFERRABLE INITIALLY DEFERRED;
             ");
         }
@@ -30,14 +30,14 @@ namespace ArchFlowServer.Migrations
         {
             migrationBuilder.Sql(@"
                 ALTER TABLE user_stories
-                DROP CONSTRAINT IF EXISTS ""UQ_user_stories_EpicId_Position"";
+                DROP CONSTRAINT IF EXISTS ""UQ_user_stories_EpicId_BacklogPosition"";
             ");
 
             // Volta ao padrão (índice unique normal)
             migrationBuilder.CreateIndex(
-                name: "IX_user_stories_EpicId_Position",
+                name: "IX_user_stories_EpicId_BacklogPosition",
                 table: "user_stories",
-                columns: new[] { "EpicId", "Position" },
+                columns: new[] { "EpicId", "BacklogPosition" },
                 unique: true);
         }
     }

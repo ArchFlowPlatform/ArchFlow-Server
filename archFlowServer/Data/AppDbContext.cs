@@ -387,46 +387,31 @@ namespace archFlowServer.Data
                       .IsUnique();
             });
 
-            modelBuilder.Entity<SprintItem>(entity =>
+            modelBuilder.Entity<SprintItem>(b =>
             {
-                entity.ToTable("sprint_items");
-                entity.HasKey(si => si.Id);
+                b.ToTable("sprint_items");
+                b.HasKey(x => x.Id);
 
-                entity.Property(si => si.Id)
-                    .ValueGeneratedOnAdd()
-                    .UseIdentityByDefaultColumn();
+                b.HasOne(x => x.Sprint)
+                 .WithMany(s => s.Items)
+                 .HasForeignKey(x => x.SprintId)
+                 .OnDelete(DeleteBehavior.Cascade);
 
-                entity.Property(si => si.SprintId).IsRequired();
-                entity.Property(si => si.UserStoryId).IsRequired();
+                b.HasOne(x => x.UserStory)
+                 .WithMany() // ou .WithMany(us => us.SprintItems) se você criar a coleção em UserStory
+                 .HasForeignKey(x => x.UserStoryId)
+                 .OnDelete(DeleteBehavior.Restrict);
 
-                entity.Property(si => si.Position)
-                    .IsRequired();
+                b.HasIndex(x => new { x.SprintId, x.UserStoryId }).IsUnique();
+            });
 
-                entity.Property(si => si.Notes)
-                    .HasColumnType("text")
-                    .IsRequired();
+            modelBuilder.Entity<StoryTask>(b =>
+            {
+                b.ToTable("story_tasks");
 
-                entity.Property(si => si.AddedAt)
-                    .HasDefaultValueSql("NOW()")
-                    .IsRequired();
-
-                entity.HasOne(si => si.Sprint)
-                    .WithMany(s => s.Items)
-                    .HasForeignKey(si => si.SprintId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(si => si.UserStory)
-                    .WithMany()
-                    .HasForeignKey(si => si.UserStoryId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // evita story duplicada dentro da mesma sprint
-                entity.HasIndex(si => new { si.SprintId, si.UserStoryId })
-                    .IsUnique();
-
-                // ordenação consistente no backlog da sprint
-                entity.HasIndex(si => new { si.SprintId, si.Position })
-                    .IsUnique();
+                b.HasOne(x => x.SprintItem)
+                    .WithMany(i => i.Tasks)
+                    .HasForeignKey(x => x.SprintItemId);
             });
 
 
@@ -497,41 +482,43 @@ namespace archFlowServer.Data
                 entity.Navigation(s => s.Items).HasField("_items");
             });
 
-            modelBuilder.Entity<StoryTask>(entity =>
+            modelBuilder.Entity<StoryTask>(b =>
             {
-                entity.ToTable("story_tasks");
-                entity.HasKey(e => e.Id);
+                b.ToTable("story_tasks");
 
-                entity.Property(e => e.Id)
-                    .ValueGeneratedOnAdd()
-                    .UseIdentityByDefaultColumn();
+                b.HasKey(x => x.Id);
 
-                entity.Property(e => e.UserStoryId).IsRequired();
+                b.Property(x => x.Title)
+                    .IsRequired()
+                    .HasMaxLength(200);
 
-                entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
-                entity.Property(e => e.Description).HasColumnType("text").IsRequired();
+                b.Property(x => x.Description)
+                    .IsRequired()
+                    .HasMaxLength(2000);
 
-                entity.Property(e => e.AssigneeId);
+                b.Property(x => x.Priority)
+                    .HasDefaultValue(0);
 
-                entity.Property(e => e.EstimatedHours);
-                entity.Property(e => e.ActualHours);
+                b.Property(x => x.Position)
+                    .HasDefaultValue(0);
 
-                entity.Property(e => e.Priority).HasDefaultValue(0).IsRequired();
-                entity.Property(e => e.Position).IsRequired(); // se você vai ter drag/reorder
+                b.Property(x => x.Status)
+                    .HasConversion<int>()
+                    .HasDefaultValue(StoryTaskStatus.Todo);
 
-                entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()").IsRequired();
+                b.Property(x => x.CreatedAt).IsRequired();
+                b.Property(x => x.UpdatedAt).IsRequired();
 
-                entity.HasOne(e => e.UserStory)
-                    .WithMany(us => us.Tasks)
-                    .HasForeignKey(e => e.UserStoryId)
+                // ✅ FK -> SprintItem
+                b.HasOne(x => x.SprintItem)
+                    .WithMany(i => i.Tasks)          // você precisa ter ICollection<StoryTask> em SprintItem
+                    .HasForeignKey(x => x.SprintItemId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(e => new { e.UserStoryId, e.Position }).IsUnique();
-                entity.HasIndex(e => e.UserStoryId);
+                // ✅ Unique por container (SprintItem)
+                b.HasIndex(x => new { x.SprintItemId, x.Position })
+                    .IsUnique();
             });
-
-
 
             modelBuilder.Entity<BoardColumn>(entity =>
             {

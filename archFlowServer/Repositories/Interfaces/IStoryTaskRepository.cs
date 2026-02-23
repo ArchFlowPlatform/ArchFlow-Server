@@ -4,19 +4,18 @@ namespace archFlowServer.Repositories.Interfaces;
 
 public interface IStoryTaskRepository
 {
-    Task<IReadOnlyList<StoryTask>> GetAllByUserStoryAsync(Guid projectId, int userStoryId);
-    Task<StoryTask?> GetByIdAsync(Guid projectId, int userStoryId, int taskId);
-    Task<StoryTask?> GetByIdInProjectAsync(Guid projectId, int taskId);
+    Task<IReadOnlyList<StoryTask>> GetAllBySprintItemAsync(Guid projectId, int sprintItemId);
+    Task<StoryTask?> GetByIdAsync(Guid projectId, int sprintItemId, int taskId);
 
-    Task<int> GetNextPositionAsync(int userStoryId);
-    Task<int> GetMaxPositionAsync(int userStoryId);
+    Task<int> GetNextPositionAsync(int sprintItemId);
+    Task<int> GetMaxPositionAsync(int sprintItemId);
 
     Task SetPositionAsync(int taskId, int position);
-    Task ShiftPositionsAsync(int userStoryId, int fromPosition, int toPosition);
+    Task ShiftPositionsAsync(int sprintItemId, int fromPosition, int toPosition);
 
-    Task SetUserStoryAndPositionAsync(int taskId, int userStoryId, int position);
-    Task DecrementPositionsAfterAsync(int userStoryId, int position);
-    Task IncrementPositionsFromAsync(int userStoryId, int position);
+    Task SetSprintItemAndPositionAsync(int taskId, int sprintItemId, int position);
+    Task DecrementPositionsAfterAsync(int sprintItemId, int position);
+    Task IncrementPositionsFromAsync(int sprintItemId, int position);
 
     Task AddAsync(StoryTask task);
     void Remove(StoryTask task);

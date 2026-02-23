@@ -14,54 +14,44 @@ public class StoryTaskRepository : IStoryTaskRepository
         _context = context;
     }
 
-    public async Task<IReadOnlyList<StoryTask>> GetAllByUserStoryAsync(Guid projectId, int userStoryId)
+    public async Task<IReadOnlyList<StoryTask>> GetAllBySprintItemAsync(Guid projectId, int sprintItemId)
     {
         return await _context.StoryTasks
             .AsNoTracking()
             .Where(t =>
-                t.UserStoryId == userStoryId &&
-                t.UserStory.Epic.ProductBacklog.ProjectId == projectId
+                t.SprintItemId == sprintItemId &&
+                t.SprintItem.Sprint.ProjectId == projectId
             )
             .OrderBy(t => t.Position)
-            .ThenByDescending(t => t.Priority)
-            .ThenBy(t => t.Id)
             .ToListAsync();
     }
 
-    public async Task<StoryTask?> GetByIdAsync(Guid projectId, int userStoryId, int taskId)
+    public async Task<StoryTask?> GetByIdAsync(Guid projectId, int sprintItemId, int taskId)
     {
         return await _context.StoryTasks
-            .FirstOrDefaultAsync(t =>
+            .Where(t =>
                 t.Id == taskId &&
-                t.UserStoryId == userStoryId &&
-                t.UserStory.Epic.ProductBacklog.ProjectId == projectId
-            );
+                t.SprintItemId == sprintItemId &&
+                t.SprintItem.Sprint.ProjectId == projectId
+            )
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<StoryTask?> GetByIdInProjectAsync(Guid projectId, int taskId)
+    public async Task<int> GetNextPositionAsync(int sprintItemId)
     {
-        return await _context.StoryTasks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t =>
-                t.Id == taskId &&
-                t.UserStory.Epic.ProductBacklog.ProjectId == projectId
-            );
-    }
-
-    public async Task<int> GetNextPositionAsync(int userStoryId)
-    {
+        // next = max + 1 (se vazio => 0)
         var max = await _context.StoryTasks
-            .Where(t => t.UserStoryId == userStoryId)
+            .Where(t => t.SprintItemId == sprintItemId)
             .Select(t => (int?)t.Position)
             .MaxAsync();
 
         return (max ?? -1) + 1;
     }
 
-    public async Task<int> GetMaxPositionAsync(int userStoryId)
+    public async Task<int> GetMaxPositionAsync(int sprintItemId)
     {
         var max = await _context.StoryTasks
-            .Where(t => t.UserStoryId == userStoryId)
+            .Where(t => t.SprintItemId == sprintItemId)
             .Select(t => (int?)t.Position)
             .MaxAsync();
 
@@ -72,77 +62,86 @@ public class StoryTaskRepository : IStoryTaskRepository
     {
         await _context.StoryTasks
             .Where(t => t.Id == taskId)
-            .ExecuteUpdateAsync(setters =>
-                setters
-                    .SetProperty(t => t.Position, position)
-                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(t => t.Position, position)
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+            );
     }
 
-    public async Task ShiftPositionsAsync(int userStoryId, int fromPosition, int toPosition)
+    /// <summary>
+    /// Shift de positions no mesmo SprintItem, movendo os demais itens para abrir/fechar espaço.
+    /// - se from < to: itens em (from+1..to) decrementam
+    /// - se from > to: itens em (to..from-1) incrementam
+    /// </summary>
+    public async Task ShiftPositionsAsync(int sprintItemId, int fromPosition, int toPosition)
     {
-        if (fromPosition == toPosition) return;
-
-        if (toPosition < fromPosition)
+        if (fromPosition < toPosition)
         {
-            // Move para cima: itens [to..from-1] descem +1
             await _context.StoryTasks
-                .Where(t => t.UserStoryId == userStoryId
+                .Where(t => t.SprintItemId == sprintItemId
+                            && t.Position > fromPosition
+                            && t.Position <= toPosition)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(t => t.Position, t => t.Position - 1)
+                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+                );
+        }
+        else
+        {
+            await _context.StoryTasks
+                .Where(t => t.SprintItemId == sprintItemId
                             && t.Position >= toPosition
                             && t.Position < fromPosition)
-                .ExecuteUpdateAsync(setters =>
-                    setters
-                        .SetProperty(t => t.Position, t => t.Position + 1)
-                        .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
-            return;
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(t => t.Position, t => t.Position + 1)
+                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+                );
         }
-
-        // Move para baixo: itens [from+1..to] sobem -1
-        await _context.StoryTasks
-            .Where(t => t.UserStoryId == userStoryId
-                        && t.Position > fromPosition
-                        && t.Position <= toPosition)
-            .ExecuteUpdateAsync(setters =>
-                setters
-                    .SetProperty(t => t.Position, t => t.Position - 1)
-                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
     }
 
-    public async Task SetUserStoryAndPositionAsync(int taskId, int userStoryId, int position)
+    public async Task SetSprintItemAndPositionAsync(int taskId, int sprintItemId, int position)
     {
         await _context.StoryTasks
             .Where(t => t.Id == taskId)
             .ExecuteUpdateAsync(setters => setters
-                .SetProperty(t => t.UserStoryId, userStoryId)
+                .SetProperty(t => t.SprintItemId, sprintItemId)
                 .SetProperty(t => t.Position, position)
-                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+            );
     }
 
-    public async Task DecrementPositionsAfterAsync(int userStoryId, int position)
+    public async Task DecrementPositionsAfterAsync(int sprintItemId, int position)
     {
         await _context.StoryTasks
-            .Where(t => t.UserStoryId == userStoryId && t.Position > position)
-            .ExecuteUpdateAsync(setters =>
-                setters
-                    .SetProperty(t => t.Position, t => t.Position - 1)
-                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
+            .Where(t => t.SprintItemId == sprintItemId && t.Position > position)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(t => t.Position, t => t.Position - 1)
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+            );
     }
 
-    public async Task IncrementPositionsFromAsync(int userStoryId, int position)
+    public async Task IncrementPositionsFromAsync(int sprintItemId, int position)
     {
         await _context.StoryTasks
-            .Where(t => t.UserStoryId == userStoryId && t.Position >= position)
-            .ExecuteUpdateAsync(setters =>
-                setters
-                    .SetProperty(t => t.Position, t => t.Position + 1)
-                    .SetProperty(t => t.UpdatedAt, DateTime.UtcNow));
+            .Where(t => t.SprintItemId == sprintItemId && t.Position >= position)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(t => t.Position, t => t.Position + 1)
+                .SetProperty(t => t.UpdatedAt, DateTime.UtcNow)
+            );
     }
 
     public async Task AddAsync(StoryTask task)
-        => await _context.StoryTasks.AddAsync(task);
+    {
+        await _context.StoryTasks.AddAsync(task);
+    }
 
     public void Remove(StoryTask task)
-        => _context.StoryTasks.Remove(task);
+    {
+        _context.StoryTasks.Remove(task);
+    }
 
     public async Task SaveChangesAsync()
-        => await _context.SaveChangesAsync();
+    {
+        await _context.SaveChangesAsync();
+    }
 }
