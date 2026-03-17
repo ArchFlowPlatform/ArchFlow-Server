@@ -25,7 +25,7 @@ public class CardCommentService
         return list.Select(MapToDto);
     }
 
-    public async Task<CardCommentResponseDto> CreateAsync(Guid projectId, int cardId, CreateCardCommentDto dto)
+    public async Task<CardCommentResponseDto> CreateAsync(Guid projectId, int cardId,Guid userId, CreateCardCommentDto dto)
     {
         _ = await _projectRepository.GetByIdAsync(projectId)
             ?? throw new NotFoundException("Projeto não encontrado.");
@@ -37,7 +37,7 @@ public class CardCommentService
                 throw new NotFoundException("ParentCommentId inválido para este card.");
         }
 
-        var comment = new CardComment(cardId, dto.UserId, dto.Content, dto.ParentCommentId);
+        var comment = new CardComment(cardId, userId, dto.Content, dto.ParentCommentId);
 
         await _commentRepository.AddAsync(comment);
         await _commentRepository.SaveChangesAsync();

@@ -1,6 +1,7 @@
 ﻿using archFlowServer.Models.Dtos.Cards.Comments;
 using archFlowServer.Models.ViewModels;
 using archFlowServer.Services;
+using archFlowServer.Utils.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace archFlowServer.Controllers;
@@ -28,7 +29,8 @@ public class CardCommentsController : ControllerBase
     [ProducesResponseType(typeof(ResultViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromRoute] Guid projectId, [FromRoute] int cardId, [FromBody] CreateCardCommentDto dto)
     {
-        var created = await _service.CreateAsync(projectId, cardId, dto);
+        var userId = User.GetUserId();
+        var created = await _service.CreateAsync(projectId, cardId, userId, dto );
         return StatusCode(StatusCodes.Status201Created, ResultViewModel.Ok("Comentário criado com sucesso.", created));
     }
 
