@@ -40,6 +40,7 @@ public class ProjectRepository : IProjectRepository
     {
         return await _context.Projects
             .Include(p => p.Members)
+            .ThenInclude(pm => pm.User)
             .FirstOrDefaultAsync(p =>
                 p.Id == projectId &&
                 p.Status == ProjectStatus.Active
