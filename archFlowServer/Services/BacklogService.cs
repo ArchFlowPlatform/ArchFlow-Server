@@ -228,7 +228,7 @@ public class BacklogService
             businessValue: dto.BusinessValue ?? story.BusinessValue,
             status: dto.Status ?? story.Status,
             backlogPosition: dto.BacklogPosition ?? story.BacklogPosition, // ✅
-            assigneeId: dto.AssigneeId ?? story.AssigneeId
+            assigneeId: dto.AssigneeId
         );
 
         await _storyRepository.SaveChangesAsync();

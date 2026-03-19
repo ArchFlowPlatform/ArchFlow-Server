@@ -4207,7 +4207,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\fatec258\\.nuget\\packages\\": {}
+    "C:\\Users\\leona\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -4215,11 +4215,11 @@
       "projectUniqueName": "C:\\ArchFlow-Server\\archFlowServer\\archFlowServer.csproj",
       "projectName": "ArchFlowServer",
       "projectPath": "C:\\ArchFlow-Server\\archFlowServer\\archFlowServer.csproj",
-      "packagesPath": "C:\\Users\\fatec258\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\leona\\.nuget\\packages\\",
       "outputPath": "C:\\ArchFlow-Server\\archFlowServer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\fatec258\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\leona\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -4333,7 +4333,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.310/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.312/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
